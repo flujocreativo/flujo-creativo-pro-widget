@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Flujo Creativo — Pro Widget</title>
+<style>
+  :root{
+    --bg:#0f0f0f; --card:#121212; --line:#1f1f1f; --text:#f3f3f3; --muted:#9a9a9a;
+    --accent:#e3dac7;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:900px; padding:18px;}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;}
+  h1{font-size:16px; letter-spacing:.3px; margin:0; font-weight:600;}
+  .badge{font-size:12px;color:var(--muted);padding:2px 8px;border:1px solid var(--line);border-radius:999px;}
+  .toolbar{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);
+    margin-bottom:12px;
+  }
+  .btn{
+    background:#1b1b1b;color:var(--text);border:1px solid var(--line);
+    padding:7px 10px;border-radius:10px;cursor:pointer;font-weight:500;
+  }
+  .btn:hover{border-color:#2a2a2a}
+  .btn.ghost{background:transparent}
+  .btn.accent{background:var(--accent); color:#000; border-color:transparent;}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  select{
+    background:#111;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 8px;min-width:140px;
+  }
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  }
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;min-height:140px;
+  }
+  .media{
+    position:relative; width:100%; aspect-ratio:1/1; background:#0a0a0a; display:flex;align-items:center;justify-content:center;
+  }
+  .media img,.media video{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .meta{padding:8px 10px; display:flex; justify-content:space-between; gap:8px; align-items:center; border-top:1px solid var(--line);}
+  .title{
+    font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;
+  }
+  .date{font-size:11px;color:var(--muted)}
+  .count{font-size:11px;color:var(--muted)}
+  .tag{
+    font-size:10px;color:#000;background:var(--accent);padding:2px 6px;border-radius:999px;font-weight:600;
+  }
+  .hidden{display:none !important}
+  .bio{
+    padding:12px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);
+    margin-bottom:12px;background:transparent;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Flujo Creativo — Pro</h1>
+      <div class="badge"><span id="badgeCount">0</span> items</div>
+    </header>
+
+    <div class="toolbar">
+      <button class="btn ghost" id="btnRefresh">Refresh</button>
+      <button class="btn ghost" id="btnClear">Clear Filters</button>
+      <button class="btn ghost" id="btnMore">Load More</button>
+
+      <div class="filters" id="filters">
+        <select id="filterPlatform"><option value="">Platform</option></select>
+        <select id="filterClient"><option value="">Client</option></select>
+        <select id="filterProject"><option value="">Project</option></select>
+        <select id="filterBrand"><option value="">Brand</option></select>
+        <select id="filterOwner"><option value="">Owner</option></select>
+        <select id="filterStatus">
+          <option value="">Status</option>
+          <option value="Draft">Draft</option>
+          <option value="Posted">Posted</option>
+          <option value="Scheduled">Scheduled</option>
+        </select>
+      </div>
+
+      <label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px;">
+        <input id="switchBio" type="checkbox" /> info
+      </label>
+    </div>
+
+    <div class="bio hidden" id="bio">
+      This Pro widget pulls your Notion content and previews it as an Instagram-like grid.
+      Use filters to organize content. Hide=true removes items from the grid. Draft items still show.
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+<script>
+  // ---- config ----
+  const READONLY = new URLSearchParams(location.search).get("readonly") === "1";
+
+  // ---- dom ----
+  const $grid = document.getElementById("grid");
+  const $btnMore = document.getElementById("btnMore");
+  const $btnRefresh = document.getElementById("btnRefresh");
+  const $btnClear = document.getElementById("btnClear");
+  const $badgeCount = document.getElementById("badgeCount");
+  const $bio = document.getElementById("bio");
+  const $switchBio = document.getElementById("switchBio");
+
+  const $filterPlatform = document.getElementById("filterPlatform");
+  const $filterClient = document.getElementById("filterClient");
+  const $filterProject = document.getElementById("filterProject");
+  const $filterBrand = document.getElementById("filterBrand");
+  const $filterOwner = document.getElementById("filterOwner");
+  const $filterStatus = document.getElementById("filterStatus");
+
+  // ---- state ----
+  const state = {
+    dbId: null,
+    items: [],
+    pageItems: [],
+    savedOrder: [],
+    filters: { platforms: [], clients: [], projects: [], brands: [], owners: [] },
+    selectedPlatform: null,
+    selectedClient: null,
+    selectedProject: null,
+    selectedBrand: null,
+    selectedOwner: null,
+    selectedStatus: null,
+    showBio: false,
+    cursor: null,
+    hasMore: false,
+  };
+
+  // ---- helpers ----
+  function storageKey(){ return state.dbId ? `order-${state.dbId}` : "order-default"; }
+  function filtersKey(){ return state.dbId ? `filters-${state.dbId}` : "filters-default"; }
+  function loadSavedOrder(){ try{ state.savedOrder = JSON.parse(localStorage.getItem(storageKey())) || []; }catch(e){ state.savedOrder=[]; } }
+  function saveOrder(){ if (READONLY) return; try{ localStorage.setItem(storageKey(), JSON.stringify(state.savedOrder)); }catch(e){} }
+  function loadSavedFilters(){
+    try{
+      const f = JSON.parse(localStorage.getItem(filtersKey())) || {};
+      state.selectedPlatform = f.selectedPlatform || null;
+      state.selectedClient = f.selectedClient || null;
+      state.selectedProject = f.selectedProject || null;
+      state.selectedBrand = f.selectedBrand || null;
+      state.selectedOwner = f.selectedOwner || null;
+      state.selectedStatus = f.selectedStatus || null;
+    }catch(e){}
+  }
+  function saveFilters(){
+    if (READONLY) return;
+    try{
+      localStorage.setItem(filtersKey(), JSON.stringify({
+        selectedPlatform: state.selectedPlatform,
+        selectedClient: state.selectedClient,
+        selectedProject: state.selectedProject,
+        selectedBrand: state.selectedBrand,
+        selectedOwner: state.selectedOwner,
+        selectedStatus: state.selectedStatus,
+      }));
+    }catch(e){}
+  }
+  function setSwitch(el, val){ el.checked=!!val; }
+
+  function formatDate(d){
+    if(!d) return "";
+    try{
+      return new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    }catch(e){ return ""; }
+  }
+
+  function normalizeItems(items){
+    return (items||[]).map(it=>{
+      const assets = it.assets || [];
+      return {
+        ...it,
+        assets,
+        firstAsset: assets[0] || null,
+      };
+    });
+  }
+
+  function sortBySavedOrder(items){
+    if(!state.savedOrder?.length) return items;
+    const map = new Map(items.map(i=>[i.id,i]));
+    const ordered = [];
+    state.savedOrder.forEach(id=>{
+      if(map.has(id)) { ordered.push(map.get(id)); map.delete(id); }
+    });
+    // append new ones
+    map.forEach(v=>ordered.push(v));
+    return ordered;
+  }
+
+  function applyFilters(items){
+    return items.filter(it=>{
+      if(state.selectedPlatform && it.platform !== state.selectedPlatform) return false;
+      if(state.selectedClient && it.client !== state.selectedClient) return false;
+      if(state.selectedProject && it.project !== state.selectedProject) return false;
+      if(state.selectedBrand && it.brand !== state.selectedBrand) return false;
+      if(state.selectedOwner && it.owner !== state.selectedOwner) return false;
+      if(state.selectedStatus && it.status !== state.selectedStatus) return false;
+      return true;
+    });
+  }
+
+  function renderGrid(){
+    $grid.innerHTML = "";
+    const items = applyFilters(state.pageItems);
+    const ordered = sortBySavedOrder(items);
+
+    ordered.forEach(it=>{
+      const card = document.createElement("div");
+      card.className = "card";
+      card.draggable = !READONLY;
+
+      const media = document.createElement("div");
+      media.className = "media";
+
+      if(it.firstAsset){
+        if(it.firstAsset.type === "video"){
+          const v = document.createElement("video");
+          v.src = it.firstAsset.url;
+          v.muted = true;
+          v.playsInline = true;
+          v.loop = true;
+          v.autoplay = true;
+          media.appendChild(v);
+        }else{
+          const img = document.createElement("img");
+          img.src = it.firstAsset.url;
+          img.alt = it.title;
+          media.appendChild(img);
+        }
+        if((it.assets||[]).length>1){
+          const count = document.createElement("div");
+          count.className = "tag";
+          count.style.position="absolute";
+          count.style.right="8px";
+          count.style.top="8px";
+          count.textContent = `+${it.assets.length-1}`;
+          media.appendChild(count);
+        }
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = it.title;
+
+      const date = document.createElement("div");
+      date.className = "date";
+      date.textContent = formatDate(it.publishDate || it.createdTime);
+
+      meta.appendChild(title);
+      meta.appendChild(date);
+
+      card.appendChild(media);
+      card.appendChild(meta);
+
+      // drag reorder
+      card.addEventListener("dragstart", e=>{
+        e.dataTransfer.setData("text/plain", it.id);
+      });
+      card.addEventListener("dragover", e=>e.preventDefault());
+      card.addEventListener("drop", e=>{
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData("text/plain");
+        if(draggedId===it.id) return;
+        const newOrder = ordered.map(x=>x.id);
+        const from = newOrder.indexOf(draggedId);
+        const to = newOrder.indexOf(it.id);
+        newOrder.splice(to,0,newOrder.splice(from,1)[0]);
+        state.savedOrder = newOrder;
+        saveOrder();
+        renderGrid();
+      });
+
+      $grid.appendChild(card);
+    });
+
+    updateCounts();
+  }
+
+  function updateCounts(){
+    $badgeCount.textContent = state.pageItems.length;
+  }
+
+  function populateSelect(sel, items){
+    const current = sel.value;
+    sel.innerHTML = sel.options[0].outerHTML;
+    items.forEach(v=>{
+      const opt=document.createElement("option");
+      opt.value=v; opt.textContent=v;
+      sel.appendChild(opt);
+    });
+    sel.value=current||"";
+  }
+
+  function populateFilters(){
+    populateSelect($filterPlatform, state.filters.platforms||[]);
+    populateSelect($filterClient, state.filters.clients||[]);
+    populateSelect($filterProject, state.filters.projects||[]);
+    populateSelect($filterBrand, state.filters.brands||[]);
+    populateSelect($filterOwner, (state.filters.owners||[]).map(o=>o.name));
+  }
+
+  function clearFilters(){
+    state.selectedPlatform=null;
+    state.selectedClient=null;
+    state.selectedProject=null;
+    state.selectedBrand=null;
+    state.selectedOwner=null;
+    state.selectedStatus=null;
+    $filterPlatform.value="";
+    $filterClient.value="";
+    $filterProject.value="";
+    $filterBrand.value="";
+    $filterOwner.value="";
+    $filterStatus.value="";
+    saveFilters();
+    renderGrid();
+  }
+
+  function renderBio(){
+    $bio.classList.toggle("hidden", !state.showBio);
+  }
+
+  // ---- data ----
+  async function load(){
+    const res = await fetch("/api/grid", { cache: "no-store" });
+    if(!res.ok){ console.error("Failed to fetch grid"); return; }
+    const data = await res.json();
+    if(!data.ok){ console.error(data.error); return; }
+
+    state.dbId = data.dbId || null;
+    loadSavedOrder();
+    loadSavedFilters();
+
+    state.items = normalizeItems(data.items || []);
+    state.filters = data.filters || { platforms: [], status: [], clients: [], projects: [], brands: [], owners: [] };
+    state.cursor = data.nextCursor || null;
+    state.hasMore = !!data.hasMore;
+
+    state.pageItems = state.items;
+
+    populateFilters();
+    applySavedFiltersToUI();
+    renderBio();
+    renderGrid();
+  }
+
+  function applySavedFiltersToUI(){
+    if(state.selectedPlatform) $filterPlatform.value=state.selectedPlatform;
+    if(state.selectedClient) $filterClient.value=state.selectedClient;
+    if(state.selectedProject) $filterProject.value=state.selectedProject;
+    if(state.selectedBrand) $filterBrand.value=state.selectedBrand;
+    if(state.selectedOwner) $filterOwner.value=state.selectedOwner;
+    if(state.selectedStatus) $filterStatus.value=state.selectedStatus;
+  }
+
+  // ---- events ----
+  function toggleBio(){
+    state.showBio=!state.showBio;
+    localStorage.setItem("showBio", JSON.stringify(state.showBio));
+    setSwitch($switchBio,state.showBio);
+    renderBio();
+  }
+
+  async function handleRefresh(){
+    state.selectedPlatform=null; state.selectedClient=null; state.selectedProject=null; 
+    state.selectedBrand=null; state.selectedOwner=null; state.selectedStatus=null;
+    clearFilters();
+    await load();
+  }
+
+  async function handleMore(){
+    if(!state.hasMore || !state.cursor) return;
+    const res = await fetch(`/api/grid?cursor=${state.cursor}`, { cache: "no-store" });
+    if(!res.ok) return;
+    const data = await res.json();
+    if(!data.ok) return;
+    const newItems = normalizeItems(data.items||[]);
+    state.items = state.items.concat(newItems);
+    state.pageItems = state.items;
+    state.cursor = data.nextCursor || null;
+    state.hasMore = !!data.hasMore;
+    renderGrid();
+  }
+
+  $btnRefresh.addEventListener("click", handleRefresh);
+  $btnClear.addEventListener("click", clearFilters);
+  $btnMore.addEventListener("click", handleMore);
+
+  $switchBio.addEventListener("change", toggleBio);
+
+  $filterPlatform.addEventListener("change", e=>{ state.selectedPlatform=e.target.value||null; saveFilters(); renderGrid(); });
+  $filterClient.addEventListener("change", e=>{ state.selectedClient=e.target.value||null; saveFilters(); renderGrid(); });
+  $filterProject.addEventListener("change", e=>{ state.selectedProject=e.target.value||null; saveFilters(); renderGrid(); });
+  $filterBrand.addEventListener("change", e=>{ state.selectedBrand=e.target.value||null; saveFilters(); renderGrid(); });
+  $filterOwner.addEventListener("change", e=>{ state.selectedOwner=e.target.value||null; saveFilters(); renderGrid(); });
+  $filterStatus.addEventListener("change", e=>{ state.selectedStatus=e.target.value||null; saveFilters(); renderGrid(); });
+
+  // initial
+  try{
+    state.showBio = JSON.parse(localStorage.getItem("showBio")) || false;
+  }catch(e){ state.showBio=false; }
+  setSwitch($switchBio,state.showBio);
+
+  load();
+</script>
+</body>
+</html>
