@@ -10,7 +10,7 @@ const NOTION_TOKEN =
   process.env.NOTION_SECRET;
 
 const NOTION_DB_ID =
-  process.env.NOTION_DATABASE_ID || // ESTE es el que usas en Vercel
+  process.env.NOTION_DATABASE_ID || // ESTE es el que tú usas en Vercel
   process.env.NOTION_DB_ID ||
   process.env.NOTION_DB ||
   process.env.NOTION_CONTENT_DB_ID;
@@ -24,18 +24,17 @@ function error(res, msg, status = 500) {
 // -------------------------------
 function readTitle(prop) {
   if (!prop) return "";
-  if (Array.isArray(prop.title) && prop.title.length) {
-    return prop.title.map((t) => t.plain_text).join("");
+  if (Array.isArray(prop.title)) {
+    return prop.title.map(t => t.plain_text).join("");
   }
-  if (Array.isArray(prop.rich_text) && prop.rich_text.length) {
-    return prop.rich_text.map((t) => t.plain_text).join("");
+  if (Array.isArray(prop.rich_text)) {
+    return prop.rich_text.map(t => t.plain_text).join("");
   }
   return "";
 }
 
 function readDate(prop) {
-  if (!prop?.date?.start) return null;
-  return prop.date.start;
+  return prop?.date?.start || null;
 }
 
 function readCheckbox(prop) {
@@ -46,102 +45,70 @@ function readSelect(prop) {
   return prop?.select?.name || null;
 }
 
-function readPeople(prop) {
-  if (!Array.isArray(prop?.people)) return null;
-  if (!prop.people.length) return null;
-  return prop.people[0]?.name || null;
-}
-
-function readRollupName(prop) {
-  if (!prop?.rollup) return null;
-  const r = prop.rollup;
-
-  if (r.type === "array") {
-    const arr = r.array;
-    if (!Array.isArray(arr) || !arr.length) return null;
-
-    const first = arr[0];
-    if (first.type === "title") {
-      return first.title?.[0]?.plain_text || null;
-    }
-    if (first.type === "rich_text") {
-      return first.rich_text?.[0]?.plain_text || null;
-    }
+function readRichText(prop) {
+  if (!prop) return "";
+  if (Array.isArray(prop.rich_text)) {
+    return prop.rich_text.map(t => t.plain_text).join("").trim();
   }
-
-  if (r.type === "number") return String(r.number);
-  return null;
+  return "";
 }
 
 function guessAssetType(url) {
   if (!url) return "image";
-  const lower = String(url).toLowerCase();
-
-  if (lower.match(/\.(mp4|mov|webm)(\?|$)/) || lower.includes("video"))
-    return "video";
-  if (lower.match(/\.(png|jpe?g|gif|webp)(\?|$)/) || lower.includes("image"))
-    return "image";
-
-  return "unknown";
+  const l = url.toLowerCase();
+  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video")) return "video";
+  return "image";
 }
 
-function getTextUrl(prop) {
+function readTextUrl(prop) {
   if (!prop) return null;
 
   if (prop.url) return prop.url.trim();
 
-  if (Array.isArray(prop.rich_text) && prop.rich_text.length) {
-    return prop.rich_text.map((t) => t.plain_text).join("").trim() || null;
+  if (Array.isArray(prop.rich_text)) {
+    return prop.rich_text.map(t => t.plain_text).join("").trim() || null;
   }
 
-  if (Array.isArray(prop.title) && prop.title.length) {
-    return prop.title.map((t) => t.plain_text).join("").trim() || null;
+  if (Array.isArray(prop.title)) {
+    return prop.title.map(t => t.plain_text).join("").trim() || null;
   }
 
-  if (typeof prop === "string") return prop.trim() || null;
+  if (typeof prop === "string") return prop.trim();
 
   return null;
 }
 
+// -------------------------------
+//  ASSETS
+// -------------------------------
 function extractAssets(props) {
-  // 1) Files (Attachment)
+  // 1. Attachment (files)
   if (props.Attachment?.files?.length) {
-    return props.Attachment.files.map((f) => ({
+    return props.Attachment.files.map(f => ({
       url: f.file?.url || f.external?.url,
       type: guessAssetType(f.file?.url || f.external?.url),
       source: "attachment",
     }));
   }
 
-  // 2) Link
-  const linkUrl = getTextUrl(props.Link);
-  if (linkUrl) {
-    return [
-      {
-        url: linkUrl,
-        type: guessAssetType(linkUrl),
-        source: "link",
-      },
-    ];
+  // 2. Link
+  const link = readTextUrl(props.Link);
+  if (link) {
+    return [{ url: link, type: guessAssetType(link), source: "link" }];
   }
 
-  // 3) Canva
-  const canvaUrl = getTextUrl(props.Canva);
-  if (canvaUrl) {
-    return [
-      {
-        url: canvaUrl,
-        type: guessAssetType(canvaUrl),
-        source: "canva",
-      },
-    ];
+  // 3. Canva
+  const canva = readTextUrl(props.Canva);
+  if (canva) {
+    return [{ url: canva, type: guessAssetType(canva), source: "canva" }];
   }
 
+  // No assets
   return [];
 }
 
 // -------------------------------
-//  NORMALIZE EACH POST
+//  NORMALIZATION
 // -------------------------------
 function normalizePost(page) {
   const props = page.properties || {};
@@ -149,79 +116,38 @@ function normalizePost(page) {
   return {
     id: page.id,
     title: readTitle(props.Name) || "Untitled",
+
     publishDate: readDate(props["Publish Date"]),
-    hide: readCheckbox(props.Hide),
-
-    brand: readSelect(props.Brand),
-
-    project:
-      readRollupName(props.ProjectName) ||
-      readSelect(props.Project) ||
-      null,
-
-    client:
-      readRollupName(props.ClientName) ||
-      readSelect(props.Client) ||
-      null,
+    caption: readRichText(props.Caption),
 
     platform: readSelect(props.Platform),
     status: readSelect(props.Status) || "Draft",
-    owner: readPeople(props.Owner),
+
+    pinned: readCheckbox(props.Pinned),
+    hide: readCheckbox(props.Hide),
 
     assets: extractAssets(props),
+
     createdTime: page.created_time,
     url: page.url,
   };
 }
 
 // -------------------------------
-//  FILTER BUILDER
+//  BUILD FILTERS (solo Platform y Status)
 // -------------------------------
-function buildFiltersFromPosts(posts) {
-  const clients = new Set();
-  const projects = new Set();
-  const brands = new Set();
-  const owners = new Map();
+function buildFilters(posts) {
+  const platforms = new Set();
+  const statuses = new Set();
 
-  posts.forEach((p) => {
-    if (p.client) clients.add(p.client);
-    if (p.project) projects.add(p.project);
-    if (p.brand) brands.add(p.brand);
-    if (p.owner) {
-      if (!owners.has(p.owner)) owners.set(p.owner, 0);
-      owners.set(p.owner, owners.get(p.owner) + 1);
-    }
+  posts.forEach(p => {
+    if (p.platform) platforms.add(p.platform);
+    if (p.status) statuses.add(p.status);
   });
 
-  const OWNER_COLORS = [
-    "#E7E3D5",
-    "#DAD1C2",
-    "#CBB9A4",
-    "#B8A18B",
-    "#A58A73",
-    "#8B6D58",
-  ];
-
-  const ownerArr = Array.from(owners.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([name], i) => ({
-      name,
-      color: OWNER_COLORS[i % OWNER_COLORS.length],
-    }));
-
   return {
-    clients: Array.from(clients).sort(),
-    projects: Array.from(projects).sort(),
-    brands: Array.from(brands).sort(),
-    platforms: [
-      "Instagram",
-      "Tiktok",
-      "Youtube",
-      "Facebook",
-      "Página web",
-      "Pantalla",
-    ],
-    owners: ownerArr,
+    platforms: Array.from(platforms).sort(),
+    statuses: Array.from(statuses).sort(),
   };
 }
 
@@ -236,42 +162,26 @@ export default async function handler(req, res) {
   const notion = new Client({ auth: NOTION_TOKEN });
 
   try {
-    // ---- Intentar query sin depender de Hide ----
-    let dbFilter = undefined;
-
-    // Si el user tiene columna Hide => filtrar correctamente
-    try {
-      const dbInfo = await notion.databases.retrieve({
-        database_id: NOTION_DB_ID,
-      });
-
-      const hasHide = !!dbInfo.properties?.Hide;
-      if (hasHide) {
-        dbFilter = {
-          and: [
-            {
-              property: "Hide",
-              checkbox: { equals: false },
-            },
-          ],
-        };
-      }
-    } catch (err) {
-      // si falla retrieve, seguimos sin filter
-    }
-
     const resp = await notion.databases.query({
       database_id: NOTION_DB_ID,
       page_size: 100,
-      ...(dbFilter ? { filter: dbFilter } : {}),
+      filter: {
+        property: "Hide",
+        checkbox: { equals: false },
+      },
       sorts: [
+        { property: "Pinned", direction: "descending" },
         { property: "Publish Date", direction: "descending" },
         { timestamp: "created_time", direction: "descending" },
       ],
     });
 
-    const items = (resp.results || []).map(normalizePost);
-    const filters = buildFiltersFromPosts(items);
+    if (!resp || !Array.isArray(resp.results)) {
+      return error(res, "Invalid Notion response", 500);
+    }
+
+    const items = resp.results.map(normalizePost);
+    const filters = buildFilters(items);
 
     res.status(200).json({
       ok: true,
@@ -281,8 +191,9 @@ export default async function handler(req, res) {
       hasMore: resp.has_more,
       nextCursor: resp.next_cursor,
     });
+
   } catch (e) {
-    console.error(e);
-    error(res, e.message || "Notion query failed");
+    console.error("Notion API Error:", e);
+    return error(res, e.body?.message || e.message || "Notion query failed", 500);
   }
 }
