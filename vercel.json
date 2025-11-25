@@ -1,0 +1,11 @@
+{
+  "rewrites": [{ "source": "/preview", "destination": "/?readonly=1" }],
+  "headers": [
+    {
+      "source": "/preview",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
+  ]
+}
