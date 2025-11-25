@@ -2,146 +2,285 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Flujo Creativo — Pro Widget</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notion Grid Widget</title>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<script src="https://animatedicons.co/scripts/embed-animated-icons.js"></script>
+
 <style>
   :root{
-    --bg:#0f0f0f; --card:#121212; --line:#1f1f1f; --text:#f3f3f3; --muted:#9a9a9a;
-    --accent:#e3dac7;
+    --bg:#fff; --text:#111; --muted:#f7f7f7; --border:#e5e7eb; --blue:#1B4B91;
+    --container:936px; --gap:1px; /* línea de separación más delgada */
+    --ui-font:13px; --ui-pad-y:8px; --ui-pad-x:12px; --ui-radius:14px;
+    --dd-minw:140px;
   }
   *{box-sizing:border-box}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    display:flex; justify-content:center;
-  }
-  .wrap{width:100%; max-width:900px; padding:18px;}
-  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;}
-  h1{font-size:16px; letter-spacing:.3px; margin:0; font-weight:600;}
-  .badge{font-size:12px;color:var(--muted);padding:2px 8px;border:1px solid var(--line);border-radius:999px;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
+  .wrap{max-width:var(--container);margin:0 auto;padding:14px}
+
   .toolbar{
     display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-    padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);
-    margin-bottom:12px;
+    border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;
+    justify-content:center;
   }
-  .btn{
-    background:#1b1b1b;color:var(--text);border:1px solid var(--line);
-    padding:7px 10px;border-radius:10px;cursor:pointer;font-weight:500;
+  .btn{border:1px solid var(--border);background:#111;color:#fff;
+    padding:var(--ui-pad-y) var(--ui-pad-x);font-weight:700;cursor:pointer;
+    border-radius:10px;font-size:var(--ui-font);display:inline-flex;align-items:center;gap:8px}
+  .btn-icon{width:36px;height:36px;border:2px solid var(--border);background:#fff;
+    border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+
+  .filters-row{display:none;gap:10px;align-items:center;justify-content:center;padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px}
+  .filters-row.open{display:flex}
+
+  .dd{position:relative}
+  .dd-toggle{
+    border:2px solid var(--border);background:#f6f6f6;padding:var(--ui-pad-y) var(--ui-pad-x);
+    min-width:var(--dd-minw);max-width:200px;cursor:pointer;display:inline-flex;
+    justify-content:space-between;align-items:center;gap:8px;border-radius:var(--ui-radius);
+    font-weight:600;font-size:var(--ui-font);white-space:nowrap
   }
-  .btn:hover{border-color:#2a2a2a}
-  .btn.ghost{background:transparent}
-  .btn.accent{background:var(--accent); color:#000; border-color:transparent;}
-  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  select{
-    background:#111;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 8px;min-width:140px;
+  .dd-toggle .label-clip{overflow:hidden;text-overflow:ellipsis}
+  .dd-toggle .count{color:#999;margin-left:6px;font-size:12px;flex-shrink:0}
+  .dd-menu{
+    position:absolute;top:calc(100% + 8px);left:0;min-width:100%;background:#fff;border:1px solid var(--border);
+    box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;z-index:30;border-radius:12px;padding:6px
   }
-  .grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  .dd.open .dd-menu{display:block}
+  .dd-item{padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13px;border-radius:8px}
+  .dd-item:hover{background:#f9fafb}
+  .dd-item .radio{width:16px;height:16px;border:2px solid #ddd;border-radius:50%;position:relative;flex-shrink:0}
+  .dd-item.active .radio{border-color:#111}
+  .dd-item.active .radio::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:7px;height:7px;background:#111;border-radius:50%}
+  .dd-item .label{flex:1}
+  .dd-item .count{color:#999;font-size:12px}
+
+  .menu{position:relative}
+  .menu-panel{
+    position:absolute;right:0;top:calc(100% + 8px);min-width:260px;background:#fff;border:1px solid var(--border);
+    box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;z-index:40;border-radius:12px;padding:10px
   }
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;
-    display:flex;flex-direction:column;min-height:140px;
+  .menu.open .menu-panel{display:block}
+  .menu-row{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;cursor:pointer}
+  .menu-row:hover{background:#f9fafb}
+  .switch{position:relative;width:42px;height:22px;background:#ddd;cursor:pointer;border-radius:12px}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;transition:transform .18s;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch.on{background:#111}.switch.on::after{transform:translateX(20px)}
+  .menu-note{color:#6b7280;font-size:12px;padding:8px 0;margin-top:8px;border-top:1px solid var(--border);line-height:1.4}
+
+  .bio{display:none;border:1px solid var(--border);padding:14px;margin:10px 0 12px;border-radius:12px}
+  .bio.visible{display:block}
+  .bio-top{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;margin-bottom:4px}
+  .bio-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#eee}
+  .bio-username{font-weight:800;font-size:16px}
+  .bio-name{font-weight:600;margin-top:3px;font-size:14px;white-space:nowrap}
+  .bio-lines{white-space:pre-wrap;margin:8px 0;line-height:1.45;font-size:14px}
+  .bio-link a{color:#1B4B91;text-decoration:none;font-weight:600;font-size:14px}
+
+  /* Grid fijo en 3 columnas (desktop y mobile) */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0}
+  .card{position:relative;background:#f5f5f5;cursor:grab;overflow:hidden;aspect-ratio:4/5;transition:opacity .2s,transform .2s}
+  .card.dragging{opacity:.5;cursor:grabbing;transform:scale(1.05);z-index:100}
+  .card.drag-over{outline:1px solid #e5e7eb}
+  .card-img,.card-video{width:100%;height:100%;object-fit:cover;display:block}
+  .card-video{pointer-events:none}
+  .card-video::-webkit-media-controls-enclosure,
+  .card-video::-webkit-media-controls{display:none !important;}
+
+  .badge{position:absolute;top:6px;right:6px;z-index:2;display:flex;gap:6px;align-items:center}
+  .badge i{font-size:13px;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
+  .badge .fa-play{font-size:12px;opacity:.95}
+
+  .card-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);padding:8px;display:flex;justify-content:space-between;align-items:flex-end;color:#fff;opacity:0;transition:opacity .18s ease}
+  .card:hover .card-overlay{opacity:1}
+  .card-title{font-weight:600;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
+  .card-title:empty{display:none;}
+  .card-date{font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
+  .card-placeholder{display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;font-weight:500}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal.open{display:flex}
+  .modal-close{position:absolute;top:20px;right:20px;width:40px;height:40px;background:rgba(255,255,255,0.9);border:none;border-radius:50%;cursor:pointer;font-size:24px;font-weight:bold;display:flex;align-items:center;justify-content:center;color:#111}
+
+  .modal-content{max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .media-wrap{position:relative;max-width:90vw;max-height:80vh;display:flex;align-items:center;justify-content:center}
+  .modal-media{max-width:90vw;max-height:80vh;object-fit:contain;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  .modal-caption{color:#fff;font-size:14px;line-height:1.5;max-width:600px;text-align:center;padding:0 20px}
+
+  .nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border:none;border-radius:999px;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:.85;transition:opacity .15s}
+  .nav-btn:hover{opacity:1}
+  .nav-btn.prev{left:8px}
+  .nav-btn.next{right:8px}
+  .nav-btn[disabled]{visibility:hidden}
+  .zone{position:absolute;top:0;bottom:0;width:30%;pointer-events:auto;background:transparent}
+  .zone.prev{left:0}
+  .zone.next{right:0}
+
+  @media (hover:hover){
+    .nav-btn{opacity:0}
+    .media-wrap:hover .nav-btn{opacity:.95}
   }
-  .media{
-    position:relative; width:100%; aspect-ratio:1/1; background:#0a0a0a; display:flex;align-items:center;justify-content:center;
+  @media (max-width:640px){
+    :root{ --ui-font:12px; --ui-pad-y:7px; --ui-pad-x:10px; --ui-radius:12px; }
+    .wrap{padding:12px}
+    .bio-top{grid-template-columns:52px 1fr}
+    .bio-avatar{width:52px;height:52px}
+    .nav-btn{opacity:1}
   }
-  .media img,.media video{
-    width:100%; height:100%; object-fit:cover; display:block;
-  }
-  .meta{padding:8px 10px; display:flex; justify-content:space-between; gap:8px; align-items:center; border-top:1px solid var(--line);}
-  .title{
-    font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;
-  }
-  .date{font-size:11px;color:var(--muted)}
-  .count{font-size:11px;color:var(--muted)}
-  .tag{
-    font-size:10px;color:#000;background:var(--accent);padding:2px 6px;border-radius:999px;font-weight:600;
-  }
-  .hidden{display:none !important}
-  .bio{
-    padding:12px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);
-    margin-bottom:12px;background:transparent;
-  }
+
+  /* Readonly: oculta opciones (menú …). El resto se mantiene igual para previsualizar. */
+  .ro .menu { display:none; }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Flujo Creativo — Pro</h1>
-      <div class="badge"><span id="badgeCount">0</span> items</div>
-    </header>
+<main class="wrap">
+  <div class="toolbar">
+    <button id="btnRefresh" class="btn">
+      <animated-icons id="aiRefresh"
+        src="https://animatedicons.co/get-icon?name=Restart&style=minimalistic&token=13c130bf-0940-48c2-92e3-16b6ffe3b232"
+        trigger="click"
+        attributes='{"variationThumbColour":"#FFFFFF","variationName":"Normal","variationNumber":1,"numberOfGroups":1,"backgroundIsGroup":false,"strokeWidth":1.48,"defaultColours":{"group-1":"#FFFFFFFF","background":"#FFFFFF"}}'
+        height="18" width="18"></animated-icons>
+      Refresh
+    </button>
 
-    <div class="toolbar">
-      <button class="btn ghost" id="btnRefresh">Refresh</button>
-      <button class="btn ghost" id="btnClear">Clear Filters</button>
-      <button class="btn ghost" id="btnMore">Load More</button>
+    <button id="btnFilter" class="btn-icon" title="Filter">
+      <i class="fa-solid fa-sliders"></i>
+    </button>
 
-      <div class="filters" id="filters">
-        <select id="filterPlatform"><option value="">Platform</option></select>
-        <select id="filterClient"><option value="">Client</option></select>
-        <select id="filterProject"><option value="">Project</option></select>
-        <select id="filterBrand"><option value="">Brand</option></select>
-        <select id="filterOwner"><option value="">Owner</option></select>
-        <select id="filterStatus">
-          <option value="">Status</option>
-          <option value="Draft">Draft</option>
-          <option value="Posted">Posted</option>
-          <option value="Scheduled">Scheduled</option>
-        </select>
+    <div class="menu" id="menu">
+      <button id="btnMenu" class="btn-icon" title="Options">…</button>
+      <div class="menu-panel">
+        <div class="menu-row" id="rowBio">
+          <span style="font-weight:600">Show Bio</span>
+          <div id="switchBio" class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="menu-note">
+          Want to customize your bio or story highlights? Visit the Bio Settings table and edit them from there.
+        </div>
       </div>
-
-      <label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px;">
-        <input id="switchBio" type="checkbox" /> info
-      </label>
     </div>
-
-    <div class="bio hidden" id="bio">
-      This Pro widget pulls your Notion content and previews it as an Instagram-like grid.
-      Use filters to organize content. Hide=true removes items from the grid. Draft items still show.
-    </div>
-
-    <div class="grid" id="grid"></div>
   </div>
 
+  <div id="filtersRow" class="filters-row">
+    <div class="dd" id="ddPlatforms">
+      <button class="dd-toggle" id="togglePlatforms">
+        <span class="label-clip" id="labelPlatforms">All Platforms</span>
+        <span><span id="countPlatforms" class="count"></span> ▾</span>
+      </button>
+      <div class="dd-menu" id="menuPlatforms"></div>
+    </div>
+
+    <div class="dd" id="ddStatus">
+      <button class="dd-toggle" id="toggleStatus">
+        <span class="label-clip" id="labelStatus">All Status</span>
+        <span><span id="countStatus" class="count"></span> ▾</span>
+      </button>
+      <div class="dd-menu" id="menuStatus"></div>
+    </div>
+  </div>
+
+  <section id="bio" class="bio visible" aria-hidden="false">
+    <div class="bio-top">
+      <img id="bioAvatar" class="bio-avatar" alt="" style="display:none" />
+      <div>
+        <div id="bioUsername" class="bio-username"></div>
+        <div id="bioName" class="bio-name"></div>
+      </div>
+    </div>
+    <div id="bioLines" class="bio-lines"></div>
+    <div class="bio-link"><a id="bioUrl" href="#" target="_blank" rel="noopener"></a></div>
+  </section>
+
+  <section id="grid" class="grid" aria-live="polite"></section>
+</main>
+
+<div id="modal" class="modal" aria-hidden="true">
+  <button class="modal-close" id="modalClose">×</button>
+  <div class="modal-content">
+    <div id="mediaWrap" class="media-wrap">
+      <div id="modalMedia"></div>
+      <button id="btnPrev" class="nav-btn prev" aria-label="Previous">‹</button>
+      <button id="btnNext" class="nav-btn next" aria-label="Next">›</button>
+      <div id="zonePrev" class="zone prev" aria-hidden="true"></div>
+      <div id="zoneNext" class="zone next" aria-hidden="true"></div>
+    </div>
+    <div id="modalCaption" class="modal-caption"></div>
+  </div>
+</div>
+
 <script>
-  // ---- config ----
-  const READONLY = new URLSearchParams(location.search).get("readonly") === "1";
+  // --- READONLY por querystring ---
+  const READONLY = new URLSearchParams(window.location.search).get('readonly') === '1';
+  if (READONLY) document.body.classList.add('ro');
 
-  // ---- dom ----
-  const $grid = document.getElementById("grid");
-  const $btnMore = document.getElementById("btnMore");
-  const $btnRefresh = document.getElementById("btnRefresh");
-  const $btnClear = document.getElementById("btnClear");
-  const $badgeCount = document.getElementById("badgeCount");
-  const $bio = document.getElementById("bio");
-  const $switchBio = document.getElementById("switchBio");
-
-  const $filterPlatform = document.getElementById("filterPlatform");
-  const $filterClient = document.getElementById("filterClient");
-  const $filterProject = document.getElementById("filterProject");
-  const $filterBrand = document.getElementById("filterBrand");
-  const $filterOwner = document.getElementById("filterOwner");
-  const $filterStatus = document.getElementById("filterStatus");
-
-  // ---- state ----
   const state = {
     dbId: null,
     items: [],
-    pageItems: [],
-    savedOrder: [],
-    filters: { platforms: [], clients: [], projects: [], brands: [], owners: [] },
+    filters: { platforms: [], status: [] },
     selectedPlatform: null,
-    selectedClient: null,
-    selectedProject: null,
-    selectedBrand: null,
-    selectedOwner: null,
     selectedStatus: null,
-    showBio: false,
-    cursor: null,
-    hasMore: false,
+    bio: null,
+    showBio: true,
+    ddOpen: null,
+    menuOpen: false,
+    savedOrder: [],
+    modalAssets: [],
+    modalIndex: 0,
+    modalCaptionText: ""
   };
 
+  // ---- DOM ----
+  const $grid = document.getElementById("grid");
+  const $btnRefresh = document.getElementById("btnRefresh");
+  const $btnFilter = document.getElementById("btnFilter");
+  const $filtersRow = document.getElementById("filtersRow");
+
+  const $ddPlatforms = document.getElementById("ddPlatforms");
+  const $togglePlatforms = document.getElementById("togglePlatforms");
+  const $menuPlatforms = document.getElementById("menuPlatforms");
+  const $labelPlatforms = document.getElementById("labelPlatforms");
+  const $countPlatforms = document.getElementById("countPlatforms");
+
+  const $ddStatus = document.getElementById("ddStatus");
+  const $toggleStatus = document.getElementById("toggleStatus");
+  const $menuStatus = document.getElementById("menuStatus");
+  const $labelStatus = document.getElementById("labelStatus");
+  const $countStatus = document.getElementById("countStatus");
+
+  const $menu = document.getElementById("menu");
+  const $btnMenu = document.getElementById("btnMenu");
+  const $rowBio = document.getElementById("rowBio");
+  const $switchBio = document.getElementById("switchBio");
+
+  const $bio = document.getElementById("bio");
+  const $bioUsername = document.getElementById("bioUsername");
+  const $bioName = document.getElementById("bioName");
+  const $bioLines = document.getElementById("bioLines");
+  const $bioUrl = document.getElementById("bioUrl");
+  const $bioAvatar = document.getElementById("bioAvatar");
+
+  const $modal = document.getElementById("modal");
+  const $modalMedia = document.getElementById("modalMedia");
+  const $modalCaption = document.getElementById("modalCaption");
+  const $modalClose = document.getElementById("modalClose");
+  const $btnPrev = document.getElementById("btnPrev");
+  const $btnNext = document.getElementById("btnNext");
+  const $zonePrev = document.getElementById("zonePrev");
+  const $zoneNext = document.getElementById("zoneNext");
+
+  const $aiRefresh = document.getElementById("aiRefresh");
+
   // ---- helpers ----
+  function escapeHtml(s){
+    s = String(s || "");
+    return s
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
   function storageKey(){ return state.dbId ? `order-${state.dbId}` : "order-default"; }
   function filtersKey(){ return state.dbId ? `filters-${state.dbId}` : "filters-default"; }
   function loadSavedOrder(){ try{ state.savedOrder = JSON.parse(localStorage.getItem(storageKey())) || []; }catch(e){ state.savedOrder=[]; } }
@@ -149,199 +288,35 @@
   function loadSavedFilters(){
     try{
       const f = JSON.parse(localStorage.getItem(filtersKey())) || {};
-      state.selectedPlatform = f.selectedPlatform || null;
-      state.selectedClient = f.selectedClient || null;
-      state.selectedProject = f.selectedProject || null;
-      state.selectedBrand = f.selectedBrand || null;
-      state.selectedOwner = f.selectedOwner || null;
-      state.selectedStatus = f.selectedStatus || null;
+      state.selectedPlatform = (f.platform !== undefined) ? f.platform : null;
+      state.selectedStatus   = (f.status   !== undefined) ? f.status   : null;
     }catch(e){}
   }
-  function saveFilters(){
-    if (READONLY) return;
-    try{
-      localStorage.setItem(filtersKey(), JSON.stringify({
-        selectedPlatform: state.selectedPlatform,
-        selectedClient: state.selectedClient,
-        selectedProject: state.selectedProject,
-        selectedBrand: state.selectedBrand,
-        selectedOwner: state.selectedOwner,
-        selectedStatus: state.selectedStatus,
-      }));
-    }catch(e){}
-  }
-  function setSwitch(el, val){ el.checked=!!val; }
+  function saveFilters(){ if (READONLY) return; try{ localStorage.setItem(filtersKey(), JSON.stringify({platform:state.selectedPlatform, status:state.selectedStatus})); }catch(e){} }
+  function setSwitch(el,on){ el.classList.toggle("on",!!on); el.setAttribute("aria-checked",!!on); }
+  function closeDD(){ state.ddOpen=null; $ddPlatforms.classList.remove("open"); $ddStatus.classList.remove("open"); }
+  function openDD(which){ closeDD(); state.ddOpen=which; (which==="p"?$ddPlatforms:$ddStatus).classList.add("open"); }
+  function closeMenu(){ $menu.classList.remove("open"); state.menuOpen=false; }
+  function closeAllToggles(){ closeDD(); closeMenu(); }
 
-  function formatDate(d){
-    if(!d) return "";
-    try{
-      return new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric"});
-    }catch(e){ return ""; }
-  }
+  document.addEventListener("click",function(e){
+    if(state.ddOpen){
+      const el = state.ddOpen==="p"?$ddPlatforms:$ddStatus;
+      if(!el.contains(e.target)) closeDD();
+    }
+    if(state.menuOpen && !$menu.contains(e.target)) closeMenu();
+  });
 
-  function normalizeItems(items){
-    return (items||[]).map(it=>{
-      const assets = it.assets || [];
-      return {
-        ...it,
-        assets,
-        firstAsset: assets[0] || null,
-      };
-    });
-  }
-
-  function sortBySavedOrder(items){
-    if(!state.savedOrder?.length) return items;
-    const map = new Map(items.map(i=>[i.id,i]));
-    const ordered = [];
-    state.savedOrder.forEach(id=>{
-      if(map.has(id)) { ordered.push(map.get(id)); map.delete(id); }
-    });
-    // append new ones
-    map.forEach(v=>ordered.push(v));
-    return ordered;
-  }
-
-  function applyFilters(items){
-    return items.filter(it=>{
-      if(state.selectedPlatform && it.platform !== state.selectedPlatform) return false;
-      if(state.selectedClient && it.client !== state.selectedClient) return false;
-      if(state.selectedProject && it.project !== state.selectedProject) return false;
-      if(state.selectedBrand && it.brand !== state.selectedBrand) return false;
-      if(state.selectedOwner && it.owner !== state.selectedOwner) return false;
-      if(state.selectedStatus && it.status !== state.selectedStatus) return false;
-      return true;
-    });
-  }
-
-  function renderGrid(){
-    $grid.innerHTML = "";
-    const items = applyFilters(state.pageItems);
-    const ordered = sortBySavedOrder(items);
-
-    ordered.forEach(it=>{
-      const card = document.createElement("div");
-      card.className = "card";
-      card.draggable = !READONLY;
-
-      const media = document.createElement("div");
-      media.className = "media";
-
-      if(it.firstAsset){
-        if(it.firstAsset.type === "video"){
-          const v = document.createElement("video");
-          v.src = it.firstAsset.url;
-          v.muted = true;
-          v.playsInline = true;
-          v.loop = true;
-          v.autoplay = true;
-          media.appendChild(v);
-        }else{
-          const img = document.createElement("img");
-          img.src = it.firstAsset.url;
-          img.alt = it.title;
-          media.appendChild(img);
-        }
-        if((it.assets||[]).length>1){
-          const count = document.createElement("div");
-          count.className = "tag";
-          count.style.position="absolute";
-          count.style.right="8px";
-          count.style.top="8px";
-          count.textContent = `+${it.assets.length-1}`;
-          media.appendChild(count);
-        }
-      }
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-
-      const title = document.createElement("div");
-      title.className = "title";
-      title.textContent = it.title;
-
-      const date = document.createElement("div");
-      date.className = "date";
-      date.textContent = formatDate(it.publishDate || it.createdTime);
-
-      meta.appendChild(title);
-      meta.appendChild(date);
-
-      card.appendChild(media);
-      card.appendChild(meta);
-
-      // drag reorder
-      card.addEventListener("dragstart", e=>{
-        e.dataTransfer.setData("text/plain", it.id);
-      });
-      card.addEventListener("dragover", e=>e.preventDefault());
-      card.addEventListener("drop", e=>{
-        e.preventDefault();
-        const draggedId = e.dataTransfer.getData("text/plain");
-        if(draggedId===it.id) return;
-        const newOrder = ordered.map(x=>x.id);
-        const from = newOrder.indexOf(draggedId);
-        const to = newOrder.indexOf(it.id);
-        newOrder.splice(to,0,newOrder.splice(from,1)[0]);
-        state.savedOrder = newOrder;
-        saveOrder();
-        renderGrid();
-      });
-
-      $grid.appendChild(card);
-    });
-
-    updateCounts();
-  }
-
-  function updateCounts(){
-    $badgeCount.textContent = state.pageItems.length;
-  }
-
-  function populateSelect(sel, items){
-    const current = sel.value;
-    sel.innerHTML = sel.options[0].outerHTML;
-    items.forEach(v=>{
-      const opt=document.createElement("option");
-      opt.value=v; opt.textContent=v;
-      sel.appendChild(opt);
-    });
-    sel.value=current||"";
-  }
-
-  function populateFilters(){
-    populateSelect($filterPlatform, state.filters.platforms||[]);
-    populateSelect($filterClient, state.filters.clients||[]);
-    populateSelect($filterProject, state.filters.projects||[]);
-    populateSelect($filterBrand, state.filters.brands||[]);
-    populateSelect($filterOwner, (state.filters.owners||[]).map(o=>o.name));
-  }
-
-  function clearFilters(){
-    state.selectedPlatform=null;
-    state.selectedClient=null;
-    state.selectedProject=null;
-    state.selectedBrand=null;
-    state.selectedOwner=null;
-    state.selectedStatus=null;
-    $filterPlatform.value="";
-    $filterClient.value="";
-    $filterProject.value="";
-    $filterBrand.value="";
-    $filterOwner.value="";
-    $filterStatus.value="";
-    saveFilters();
-    renderGrid();
-  }
-
-  function renderBio(){
-    $bio.classList.toggle("hidden", !state.showBio);
+  function formatDate(dateStr){
+    if(!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return "";
+    return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
   }
 
   // ---- data ----
   async function load(){
-    const res = await fetch("/api/grid", { cache: "no-store" });
-    if(!res.ok){ console.error("Failed to fetch grid"); return; }
+    const res = await fetch("/api/grid");
     const data = await res.json();
     if(!data.ok){ console.error(data.error); return; }
 
@@ -349,76 +324,323 @@
     loadSavedOrder();
     loadSavedFilters();
 
-    state.items = normalizeItems(data.items || []);
-    state.filters = data.filters || { platforms: [], status: [], clients: [], projects: [], brands: [], owners: [] };
-    state.cursor = data.nextCursor || null;
-    state.hasMore = !!data.hasMore;
+    state.items = data.items || [];
+    state.filters = data.filters || { platforms: [], status: [] };
+    state.bio = data.bio || null;
 
-    state.pageItems = state.items;
+    state.showBio = (localStorage.getItem("showBio") || "true") === "true";
+    setSwitch($switchBio, state.showBio);
 
-    populateFilters();
-    applySavedFiltersToUI();
     renderBio();
+    renderMenus();
     renderGrid();
+    updateCounts();
   }
 
-  function applySavedFiltersToUI(){
-    if(state.selectedPlatform) $filterPlatform.value=state.selectedPlatform;
-    if(state.selectedClient) $filterClient.value=state.selectedClient;
-    if(state.selectedProject) $filterProject.value=state.selectedProject;
-    if(state.selectedBrand) $filterBrand.value=state.selectedBrand;
-    if(state.selectedOwner) $filterOwner.value=state.selectedOwner;
-    if(state.selectedStatus) $filterStatus.value=state.selectedStatus;
+  // ---- menus / filtros ----
+  function passPlatform(it){ return !state.selectedPlatform || it.platform===state.selectedPlatform; }
+  function passStatus(it){ return !state.selectedStatus || it.status===state.selectedStatus; }
+  function passFilters(it){ return passPlatform(it) && passStatus(it); }
+
+  function renderMenus(){
+    const Pset = new Map(), Sset = new Map();
+    state.items.forEach(function(it){
+      if (it.platform) Pset.set(it.platform, (Pset.get(it.platform)||0)+1);
+      if (it.status)   Sset.set(it.status,   (Sset.get(it.status)||0)+1);
+    });
+    var P = Array.from(Pset.keys()), S = Array.from(Sset.keys());
+    P.sort(function(a,b){ return (Pset.get(b)||0)-(Pset.get(a)||0); });
+    S.sort(function(a,b){ return (Sset.get(b)||0)-(Sset.get(a)||0); });
+    var igIndex = P.findIndex(function(x){ return (x||"").toLowerCase()==="instagram"; });
+    if (igIndex>0) { P.splice(0,0,P.splice(igIndex,1)[0]); }
+
+    const allP = state.items.filter(passStatus);
+    const countByPlatform = {};
+    allP.forEach(function(it){ countByPlatform[it.platform] = (countByPlatform[it.platform]||0)+1; });
+    const Pmenu = ["All Platforms", ...P];
+    $menuPlatforms.innerHTML = Pmenu.map(function(x){
+      const count = x==="All Platforms" ? allP.length : (countByPlatform[x]||0);
+      const active = (x==="All Platforms" && !state.selectedPlatform) || state.selectedPlatform===x;
+      return '<div class="dd-item '+(active?'active':'')+'" data-v="'+x+'">'+
+        '<div class="radio"></div><div class="label">'+x+'</div><div class="count">('+count+')</div></div>';
+    }).join("");
+    Array.prototype.forEach.call($menuPlatforms.children, function(el){
+      el.onclick = function(){
+        const val = el.getAttribute("data-v");
+        state.selectedPlatform = val==="All Platforms"? null : val;
+        $labelPlatforms.textContent = val;
+        saveFilters();
+        closeDD(); renderGrid(); renderMenus(); updateCounts();
+      };
+    });
+
+    const allS = state.items.filter(passPlatform);
+    const countByStatus = {};
+    allS.forEach(function(it){ countByStatus[it.status] = (countByStatus[it.status]||0)+1; });
+    const Smenu = ["All Status", ...S];
+    $menuStatus.innerHTML = Smenu.map(function(x){
+      const count = x==="All Status" ? allS.length : (countByStatus[x]||0);
+      const active = (x==="All Status" && !state.selectedStatus) || state.selectedStatus===x;
+      return '<div class="dd-item '+(active?'active':'')+'" data-v="'+x+'">'+
+        '<div class="radio"></div><div class="label">'+x+'</div><div class="count">('+count+')</div></div>';
+    }).join("");
+    Array.prototype.forEach.call($menuStatus.children, function(el){
+      el.onclick = function(){
+        const val = el.getAttribute("data-v");
+        state.selectedStatus = val==="All Status"? null : val;
+        $labelStatus.textContent = val;
+        saveFilters();
+        closeDD(); renderGrid(); renderMenus(); updateCounts();
+      };
+    });
+
+    $labelPlatforms.textContent = state.selectedPlatform || "All Platforms";
+    $labelStatus.textContent = state.selectedStatus || "All Status";
   }
 
-  // ---- events ----
-  function toggleBio(){
-    state.showBio=!state.showBio;
-    localStorage.setItem("showBio", JSON.stringify(state.showBio));
-    setSwitch($switchBio,state.showBio);
-    renderBio();
+  function updateCounts(){
+    const filtered = state.items.filter(passFilters);
+    $countPlatforms.textContent = state.selectedPlatform ? "("+filtered.length+")" : "";
+    $countStatus.textContent = state.selectedStatus ? "("+filtered.length+")" : "";
   }
 
-  async function handleRefresh(){
-    state.selectedPlatform=null; state.selectedClient=null; state.selectedProject=null; 
-    state.selectedBrand=null; state.selectedOwner=null; state.selectedStatus=null;
-    clearFilters();
-    await load();
+  // ---- grid + orden ----
+  function sortWithSavedOrder(arr){
+    const orderIndex = {};
+    (state.savedOrder||[]).forEach(function(id,i){ orderIndex[id]=i; });
+    return arr.slice().sort(function(a,b){
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const ai = (orderIndex[a.id] !== undefined) ? orderIndex[a.id] : Infinity;
+      const bi = (orderIndex[b.id] !== undefined) ? orderIndex[b.id] : Infinity;
+      if (ai !== bi) return ai - bi;
+      const da = a.date ? new Date(a.date) : 0;
+      const db = b.date ? new Date(b.date) : 0;
+      return (db - da);
+    });
   }
 
-  async function handleMore(){
-    if(!state.hasMore || !state.cursor) return;
-    const res = await fetch(`/api/grid?cursor=${state.cursor}`, { cache: "no-store" });
-    if(!res.ok) return;
-    const data = await res.json();
-    if(!data.ok) return;
-    const newItems = normalizeItems(data.items||[]);
-    state.items = state.items.concat(newItems);
-    state.pageItems = state.items;
-    state.cursor = data.nextCursor || null;
-    state.hasMore = !!data.hasMore;
-    renderGrid();
+  function renderGrid(){
+    const ordered = sortWithSavedOrder(state.items);
+    const items = ordered.filter(passFilters).slice(0,12);
+
+    if(items.length===0){
+      $grid.innerHTML = Array(12).fill(0).map(function(){ return '<div class="card card-placeholder">No Content</div>'; }).join("");
+      return;
+    }
+
+    $grid.innerHTML = items.map(function(it, index){
+      var badges = [];
+      if(it.isVideo) badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
+      if(it.pinned)  badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
+
+      var media = "";
+      var first = (it.assets && it.assets[0]) || null;
+      if(first){
+        if(first.type==="video"){
+          media = '<video class="card-video" data-src="'+first.url+'" muted loop playsinline preload="none"></video>';
+        }else{
+          media = '<img class="card-img" src="'+first.url+'" alt="'+escapeHtml(it.title||"")+'" loading="lazy" decoding="async" />';
+        }
+      }else{
+        media = '<div class="card-placeholder">No Content</div>';
+      }
+
+      var titleHtml = it.title ? '<div class="card-title">'+escapeHtml(it.title)+'</div>' : '<div class="card-title"></div>';
+      var draggable = READONLY ? 'false' : 'true';
+
+      return '<article class="card" draggable="'+draggable+'" data-index="'+index+'" data-id="'+it.id+'" data-item=\''+JSON.stringify(it).replace(/'/g,"&apos;")+'\'>'+
+        '<div class="badge">'+badges.join("")+'</div>'+
+        media+
+        '<div class="card-overlay">'+
+          titleHtml+
+          '<div class="card-date">'+formatDate(it.date)+'</div>'+
+        '</div></article>';
+    }).join("");
+
+    Array.prototype.forEach.call($grid.querySelectorAll("video.card-video"), function(vid){
+      const card = vid.closest(".card");
+      card.addEventListener("mouseenter", function(){
+        if(!card.classList.contains("dragging")) {
+          if(!vid.src) vid.src = vid.getAttribute("data-src");
+          vid.play().catch(function(){});
+        }
+      });
+      card.addEventListener("mouseleave", function(){ vid.pause(); try{vid.currentTime = 0;}catch(e){} });
+    });
+
+    Array.prototype.forEach.call($grid.querySelectorAll(".card"), function(card){
+      card.addEventListener("click", function(){
+        if(card.classList.contains("dragging")) return;
+        const item = JSON.parse(card.getAttribute("data-item").replace(/&apos;/g,"'"));
+        openModal(item);
+      });
+    });
+
+    if (!READONLY) {
+      enableDnD(items.map(function(i){ return i.id; }));
+    }
   }
 
-  $btnRefresh.addEventListener("click", handleRefresh);
-  $btnClear.addEventListener("click", clearFilters);
-  $btnMore.addEventListener("click", handleMore);
+  function enableDnD(visibleIds){
+    let dragged = null, startIdx = null;
+    const cards = Array.prototype.slice.call($grid.querySelectorAll(".card"));
 
-  $switchBio.addEventListener("change", toggleBio);
+    cards.forEach(function(card){
+      card.addEventListener("dragstart", function(e){
+        dragged = card; startIdx = parseInt(card.getAttribute("data-index")); card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      card.addEventListener("dragend", function(){
+        card.classList.remove("dragging");
+        cards.forEach(function(c){ c.classList.remove("drag-over"); });
+      });
+      card.addEventListener("dragover", function(e){
+        e.preventDefault();
+        if(dragged !== card) card.classList.add("drag-over");
+      });
+      card.addEventListener("dragleave", function(){ card.classList.remove("drag-over"); });
+      card.addEventListener("drop", function(e){
+        e.preventDefault();
+        card.classList.remove("drag-over");
+        if(dragged === card) return;
 
-  $filterPlatform.addEventListener("change", e=>{ state.selectedPlatform=e.target.value||null; saveFilters(); renderGrid(); });
-  $filterClient.addEventListener("change", e=>{ state.selectedClient=e.target.value||null; saveFilters(); renderGrid(); });
-  $filterProject.addEventListener("change", e=>{ state.selectedProject=e.target.value||null; saveFilters(); renderGrid(); });
-  $filterBrand.addEventListener("change", e=>{ state.selectedBrand=e.target.value||null; saveFilters(); renderGrid(); });
-  $filterOwner.addEventListener("change", e=>{ state.selectedOwner=e.target.value||null; saveFilters(); renderGrid(); });
-  $filterStatus.addEventListener("change", e=>{ state.selectedStatus=e.target.value||null; saveFilters(); renderGrid(); });
+        const from = startIdx;
+        const to   = parseInt(card.getAttribute("data-index"));
 
-  // initial
-  try{
-    state.showBio = JSON.parse(localStorage.getItem("showBio")) || false;
-  }catch(e){ state.showBio=false; }
-  setSwitch($switchBio,state.showBio);
+        const vis = visibleIds.slice();
+        const moved = vis.splice(from, 1)[0];
+        vis.splice(to, 0, moved);
 
+        const remaining = (state.savedOrder || []).filter(function(id){ return visibleIds.indexOf(id)===-1; });
+        state.savedOrder = vis.concat(remaining);
+        saveOrder();
+        renderGrid();
+      });
+
+      card.addEventListener("touchstart", function(){ startIdx = parseInt(card.getAttribute("data-index")); dragged = card; card.classList.add("dragging"); }, {passive:true});
+      card.addEventListener("touchend", function(ev){
+        if(!dragged) return;
+        const t = ev.changedTouches[0];
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        const targetCard = el ? el.closest(".card") : null;
+        card.classList.remove("dragging");
+        if(targetCard && targetCard!==card){
+          const from = startIdx;
+          const to = parseInt(targetCard.getAttribute("data-index"));
+          const vis = visibleIds.slice();
+          const moved = vis.splice(from,1)[0];
+          vis.splice(to,0,moved);
+          const remaining = (state.savedOrder || []).filter(function(id){ return visibleIds.indexOf(id)===-1; });
+          state.savedOrder = vis.concat(remaining);
+          saveOrder();
+          renderGrid();
+        }
+        dragged = null;
+      }, {passive:true});
+    });
+  }
+
+  // ---- modal / carrusel ----
+  function renderModalAsset(){
+    const idx = state.modalIndex;
+    const a = state.modalAssets[idx];
+    $modalMedia.innerHTML = "";
+    if(!a) return;
+
+    if(a.type==="video"){
+      const v = document.createElement("video");
+      v.src = a.url; v.autoplay = true; v.muted = true; v.playsInline = true; v.loop = true;
+      v.className = "modal-media";
+      $modalMedia.appendChild(v);
+    }else{
+      const i = document.createElement("img");
+      i.src = a.url; i.alt = ""; i.className = "modal-media";
+      $modalMedia.appendChild(i);
+    }
+
+    $modalCaption.textContent = (idx===0 ? state.modalCaptionText : "");
+    $btnPrev.disabled = idx <= 0;
+    $btnNext.disabled = idx >= state.modalAssets.length - 1;
+  }
+
+  function openModal(item){
+    state.modalAssets = (item.assets && item.assets.length) ? item.assets.slice() :
+      (item.image ? [{type: (/\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i.test(item.image) ? "video" : "image"), url:item.image}] : []);
+    state.modalIndex = 0;
+    state.modalCaptionText = item.caption || "";
+    renderModalAsset();
+    $modal.classList.add("open"); $modal.setAttribute("aria-hidden","false");
+  }
+  function closeModalFn(){
+    $modal.classList.remove("open"); $modal.setAttribute("aria-hidden","true");
+    $modalMedia.innerHTML=""; $modalCaption.textContent="";
+    state.modalAssets=[]; state.modalIndex=0; state.modalCaptionText="";
+  }
+
+  $btnPrev.onclick = function(){ if(state.modalIndex>0){ state.modalIndex--; renderModalAsset(); } };
+  $btnNext.onclick = function(){ if(state.modalIndex<state.modalAssets.length-1){ state.modalIndex++; renderModalAsset(); } };
+  $zonePrev.onclick = $btnPrev.onclick;
+  $zoneNext.onclick = $btnNext.onclick;
+
+  $modal.onclick = function(e){ if(e.target===$modal) closeModalFn(); };
+  $modalClose.onclick = closeModalFn;
+  document.addEventListener("keydown", function(e){
+    if($modal.classList.contains("open")){
+      if(e.key==="Escape") closeModalFn();
+      if(e.key==="ArrowLeft") $btnPrev.click();
+      if(e.key==="ArrowRight") $btnNext.click();
+    }
+  });
+
+  // ---- bio ----
+  function renderBio(){
+    const b = state.bio;
+    if(!b){ $bio.classList.remove("visible"); $bio.setAttribute("aria-hidden","true"); return; }
+    $bioUsername.textContent = b.username || "";
+    $bioName.textContent = b.name || "";
+    $bioLines.textContent = (b.textLines || []).join("\n");
+    const cleanUrl = (b.url || "").replace(/^https?:\/\//,"");
+    $bioUrl.textContent = cleanUrl || "";
+    $bioUrl.href = b.url || "#";
+    if(b.avatar){ $bioAvatar.src = b.avatar; $bioAvatar.style.display = "block"; }
+    else{ $bioAvatar.style.display = "none"; }
+
+    if(state.showBio){ $bio.classList.add("visible"); $bio.setAttribute("aria-hidden","false"); }
+    else{ $bio.classList.remove("visible"); $bio.setAttribute("aria-hidden","true"); }
+  }
+
+  // ---- events (toolbar / menus) ----
+  function toggleBio(){ state.showBio=!state.showBio; localStorage.setItem("showBio", String(state.showBio)); setSwitch($switchBio,state.showBio); renderBio(); }
+
+  function handleRefresh(){
+    state.selectedPlatform=null; state.selectedStatus=null;
+    saveFilters();
+    $labelPlatforms.textContent="All Platforms"; $labelStatus.textContent="All Status";
+    closeAllToggles();
+    load();
+  }
+
+  $btnRefresh.onclick = handleRefresh;
+  if($aiRefresh){ $aiRefresh.addEventListener("click", function(e){ e.stopPropagation(); handleRefresh(); }); }
+
+  $btnFilter.onclick = function(){
+    const isOpen = $filtersRow.classList.contains("open");
+    closeMenu();
+    if (isOpen) $filtersRow.classList.remove("open");
+    else $filtersRow.classList.add("open");
+  };
+  $togglePlatforms.onclick = function(e){ e.stopPropagation(); $filtersRow.classList.add("open"); state.ddOpen==="p"?closeDD():openDD("p"); };
+  $toggleStatus.onclick   = function(e){ e.stopPropagation(); $filtersRow.classList.add("open"); state.ddOpen==="s"?closeDD():openDD("s"); };
+
+  $btnMenu.onclick = function(e){
+    e.stopPropagation();
+    closeDD();
+    if(state.menuOpen){ closeMenu(); } else { $menu.classList.add("open"); state.menuOpen=true; }
+  };
+  $rowBio.onclick = toggleBio;
+  $switchBio.onclick = function(e){ e.stopPropagation(); toggleBio(); };
+
+  // go!
   load();
 </script>
 </body>
