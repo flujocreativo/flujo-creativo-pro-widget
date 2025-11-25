@@ -1,15 +1,17 @@
 // api/grid.js
 import { Client } from "@notionhq/client";
 
-// 1) LEER VARIABLES con fallback de nombres
+// -------------------------------
+//  ENV VARS
+// -------------------------------
 const NOTION_TOKEN =
   process.env.NOTION_TOKEN ||
   process.env.NOTION_API_TOKEN ||
   process.env.NOTION_SECRET;
 
 const NOTION_DB_ID =
+  process.env.NOTION_DATABASE_ID || // ESTE es el que usas en Vercel
   process.env.NOTION_DB_ID ||
-  process.env.NOTION_DATABASE_ID || // <-- el que tú tienes en Vercel
   process.env.NOTION_DB ||
   process.env.NOTION_CONTENT_DB_ID;
 
@@ -17,6 +19,9 @@ function error(res, msg, status = 500) {
   res.status(status).json({ ok: false, error: msg });
 }
 
+// -------------------------------
+//  HELPERS
+// -------------------------------
 function readTitle(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.title) && prop.title.length) {
@@ -41,58 +46,20 @@ function readSelect(prop) {
   return prop?.select?.name || null;
 }
 
-function readMultiSelect(prop) {
-  if (!Array.isArray(prop?.multi_select)) return [];
-  return prop.multi_select.map((s) => s.name);
-}
-
-function readRichTextUrl(prop) {
-  // lectura de propiedades tipo texto que contienen un link
-  if (!prop) return null;
-  if (Array.isArray(prop.rich_text) && prop.rich_text.length) {
-    const val = prop.rich_text.map((t) => t.plain_text).join("").trim();
-    return val || null;
-  }
-  if (Array.isArray(prop.title) && prop.title.length) {
-    const val = prop.title.map((t) => t.plain_text).join("").trim();
-    return val || null;
-  }
-  if (typeof prop === "string") {
-    const val = prop.trim();
-    return val || null;
-  }
-  return null;
-}
-
-function readUrl(prop) {
-  // propiedad tipo URL de Notion
-  return prop?.url || null;
-}
-
 function readPeople(prop) {
   if (!Array.isArray(prop?.people)) return null;
   if (!prop.people.length) return null;
-  // solo 1 dueño principal (el primero)
   return prop.people[0]?.name || null;
-}
-
-function readRelationName(prop) {
-  // fallback si no hay rollup
-  if (!prop) return null;
-  if (Array.isArray(prop.relation) && prop.relation.length) {
-    // devolvemos solo “(relation)” porque sin otra query no tenemos el nombre
-    return "(relation)";
-  }
-  return null;
 }
 
 function readRollupName(prop) {
   if (!prop?.rollup) return null;
   const r = prop.rollup;
+
   if (r.type === "array") {
     const arr = r.array;
     if (!Array.isArray(arr) || !arr.length) return null;
-    // intentamos texto del primer item
+
     const first = arr[0];
     if (first.type === "title") {
       return first.title?.[0]?.plain_text || null;
@@ -100,8 +67,8 @@ function readRollupName(prop) {
     if (first.type === "rich_text") {
       return first.rich_text?.[0]?.plain_text || null;
     }
-    return null;
   }
+
   if (r.type === "number") return String(r.number);
   return null;
 }
@@ -110,39 +77,34 @@ function guessAssetType(url) {
   if (!url) return "image";
   const lower = String(url).toLowerCase();
 
-  // video
-  if (lower.match(/\.(mp4|mov|webm)(\?|$)/) || lower.includes("video")) return "video";
-
-  // image
-  if (lower.match(/\.(png|jpe?g|gif|webp)(\?|$)/) || lower.includes("image")) return "image";
+  if (lower.match(/\.(mp4|mov|webm)(\?|$)/) || lower.includes("video"))
+    return "video";
+  if (lower.match(/\.(png|jpe?g|gif|webp)(\?|$)/) || lower.includes("image"))
+    return "image";
 
   return "unknown";
 }
 
 function getTextUrl(prop) {
   if (!prop) return null;
-  if (prop.url) return String(prop.url).trim() || null; // Notion URL-type
+
+  if (prop.url) return prop.url.trim();
+
   if (Array.isArray(prop.rich_text) && prop.rich_text.length) {
-    return prop.rich_text.map(t => t.plain_text).join("").trim() || null;
+    return prop.rich_text.map((t) => t.plain_text).join("").trim() || null;
   }
+
   if (Array.isArray(prop.title) && prop.title.length) {
-    return prop.title.map(t => t.plain_text).join("").trim() || null;
+    return prop.title.map((t) => t.plain_text).join("").trim() || null;
   }
+
   if (typeof prop === "string") return prop.trim() || null;
+
   return null;
 }
 
-function pushTextAsset(assets, url, source) {
-  if (!url) return;
-  assets.push({
-    url,
-    type: guessAssetType(url),
-    source,
-  });
-}
-
 function extractAssets(props) {
-  // prioridad 1: Attachment (files)
+  // 1) Files (Attachment)
   if (props.Attachment?.files?.length) {
     return props.Attachment.files.map((f) => ({
       url: f.file?.url || f.external?.url,
@@ -151,7 +113,7 @@ function extractAssets(props) {
     }));
   }
 
-  // prioridad 2: Link (URL prop o texto)
+  // 2) Link
   const linkUrl = getTextUrl(props.Link);
   if (linkUrl) {
     return [
@@ -163,7 +125,7 @@ function extractAssets(props) {
     ];
   }
 
-  // prioridad 3: Canva (URL prop o texto)
+  // 3) Canva
   const canvaUrl = getTextUrl(props.Canva);
   if (canvaUrl) {
     return [
@@ -178,47 +140,43 @@ function extractAssets(props) {
   return [];
 }
 
+// -------------------------------
+//  NORMALIZE EACH POST
+// -------------------------------
 function normalizePost(page) {
   const props = page.properties || {};
 
-  const title = readTitle(props.Name) || "Untitled";
-  const publishDate = readDate(props["Publish Date"]);
-  const hide = readCheckbox(props.Hide);
-
-  const brand = readSelect(props.Brand);
-  const project =
-    readRollupName(props.ProjectName) ||
-    readSelect(props.Project) ||
-    readRelationName(props.Project);
-
-  const client =
-    readRollupName(props.ClientName) ||
-    readSelect(props.Client) ||
-    readRelationName(props.Client);
-
-  const platform = readSelect(props.Platform);
-  const status = readSelect(props.Status) || "Draft";
-  const owner = readPeople(props.Owner);
-
-  const assets = extractAssets(props);
-
   return {
     id: page.id,
-    title,
-    publishDate,
-    hide,
-    brand,
-    client,
-    project,
-    platform,
-    status,
-    owner,
-    assets,
+    title: readTitle(props.Name) || "Untitled",
+    publishDate: readDate(props["Publish Date"]),
+    hide: readCheckbox(props.Hide),
+
+    brand: readSelect(props.Brand),
+
+    project:
+      readRollupName(props.ProjectName) ||
+      readSelect(props.Project) ||
+      null,
+
+    client:
+      readRollupName(props.ClientName) ||
+      readSelect(props.Client) ||
+      null,
+
+    platform: readSelect(props.Platform),
+    status: readSelect(props.Status) || "Draft",
+    owner: readPeople(props.Owner),
+
+    assets: extractAssets(props),
     createdTime: page.created_time,
     url: page.url,
   };
 }
 
+// -------------------------------
+//  FILTER BUILDER
+// -------------------------------
 function buildFiltersFromPosts(posts) {
   const clients = new Set();
   const projects = new Set();
@@ -235,7 +193,6 @@ function buildFiltersFromPosts(posts) {
     }
   });
 
-  // asignar colores determinísticos
   const OWNER_COLORS = [
     "#E7E3D5",
     "#DAD1C2",
@@ -268,44 +225,52 @@ function buildFiltersFromPosts(posts) {
   };
 }
 
+// -------------------------------
+//  MAIN HANDLER
+// -------------------------------
 export default async function handler(req, res) {
   if (!NOTION_TOKEN || !NOTION_DB_ID) {
-    return error(
-      res,
-      "Missing NOTION_TOKEN or NOTION_DATABASE_ID env vars.",
-      400
-    );
+    return error(res, "Missing NOTION_TOKEN or NOTION_DATABASE_ID env vars.", 400);
   }
 
   const notion = new Client({ auth: NOTION_TOKEN });
 
   try {
+    // ---- Intentar query sin depender de Hide ----
+    let dbFilter = undefined;
+
+    // Si el user tiene columna Hide => filtrar correctamente
+    try {
+      const dbInfo = await notion.databases.retrieve({
+        database_id: NOTION_DB_ID,
+      });
+
+      const hasHide = !!dbInfo.properties?.Hide;
+      if (hasHide) {
+        dbFilter = {
+          and: [
+            {
+              property: "Hide",
+              checkbox: { equals: false },
+            },
+          ],
+        };
+      }
+    } catch (err) {
+      // si falla retrieve, seguimos sin filter
+    }
+
     const resp = await notion.databases.query({
       database_id: NOTION_DB_ID,
       page_size: 100,
-      filter: {
-        and: [
-          // Hide = false (lo único obligatorio)
-          {
-            property: "Hide",
-            checkbox: { equals: false },
-          },
-        ],
-      },
+      ...(dbFilter ? { filter: dbFilter } : {}),
       sorts: [
-        {
-          property: "Publish Date",
-          direction: "descending",
-        },
-        {
-          timestamp: "created_time",
-          direction: "descending",
-        },
+        { property: "Publish Date", direction: "descending" },
+        { timestamp: "created_time", direction: "descending" },
       ],
     });
 
     const items = (resp.results || []).map(normalizePost);
-
     const filters = buildFiltersFromPosts(items);
 
     res.status(200).json({
