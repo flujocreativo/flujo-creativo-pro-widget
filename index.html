@@ -130,6 +130,20 @@
 
   /* Readonly: oculta opciones (menú …). El resto se mantiene igual para previsualizar. */
   .ro .menu { display:none; }
+
+  /* --- SKELETON LOADER (solo media area) --- */
+  .skeleton-block {
+    width: 100%;
+    height: 100%;
+    background: #e5e5e5;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%   { opacity: 0.6; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
 </style>
 </head>
 <body>
@@ -227,7 +241,8 @@
     savedOrder: [],
     modalAssets: [],
     modalIndex: 0,
-    modalCaptionText: ""
+    modalCaptionText: "",
+    isLoading: false
   };
 
   // ---- DOM ----
@@ -316,9 +331,18 @@
 
   // ---- data ----
   async function load(){
-    const res = await fetch("/api/grid");
+    state.isLoading = true;
+    renderGrid(); // muestra skeleton
+
+    const res = await fetch("/api/grid", { cache: "no-store" });
     const data = await res.json();
-    if(!data.ok){ console.error(data.error); return; }
+
+    state.isLoading = false;
+
+    if(!data.ok){
+      console.error(data.error);
+      return;
+    }
 
     state.dbId = data.dbId || null;
     loadSavedOrder();
@@ -356,7 +380,7 @@
 
     const allP = state.items.filter(passStatus);
     const countByPlatform = {};
-    allP.forEach(function(it){ countByPlatform[it.platform] = (countByPlatform[it.platform]||0)+1; });
+    allP.forEach(function(it){ countByPlatform[it.platform] = (countByPlatform[it.platform)||0)+1; });
     const Pmenu = ["All Platforms", ...P];
     $menuPlatforms.innerHTML = Pmenu.map(function(x){
       const count = x==="All Platforms" ? allP.length : (countByPlatform[x]||0);
@@ -376,7 +400,7 @@
 
     const allS = state.items.filter(passPlatform);
     const countByStatus = {};
-    allS.forEach(function(it){ countByStatus[it.status] = (countByStatus[it.status]||0)+1; });
+    allS.forEach(function(it){ countByStatus[it.status] = (countByStatus[it.status)||0)+1; });
     const Smenu = ["All Status", ...S];
     $menuStatus.innerHTML = Smenu.map(function(x){
       const count = x==="All Status" ? allS.length : (countByStatus[x]||0);
@@ -420,6 +444,18 @@
   }
 
   function renderGrid(){
+    // SKELETON MODE
+    if (state.isLoading) {
+      $grid.innerHTML = Array(12).fill(0).map(() => {
+        return `
+          <article class="card">
+            <div class="skeleton-block"></div>
+          </article>
+        `;
+      }).join("");
+      return;
+    }
+
     const ordered = sortWithSavedOrder(state.items);
     const items = ordered.filter(passFilters).slice(0,12);
 
@@ -430,14 +466,19 @@
 
     $grid.innerHTML = items.map(function(it, index){
       var badges = [];
-      if(it.isVideo) badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
-      if(it.pinned)  badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
+      var first = (it.assets && it.assets[0]) || null;
+
+      if (first && first.type === "video") {
+        badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
+      }
+      if (it.pinned) {
+        badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
+      }
 
       var media = "";
-      var first = (it.assets && it.assets[0]) || null;
       if(first){
         if(first.type==="video"){
-          media = '<video class="card-video" data-src="'+first.url+'" muted loop playsinline preload="none"></video>';
+          media = '<video class="card-video" data-src="'+first.url+'" muted loop playsinline preload="metadata"></video>';
         }else{
           media = '<img class="card-img" src="'+first.url+'" alt="'+escapeHtml(it.title||"")+'" loading="lazy" decoding="async" />';
         }
