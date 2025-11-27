@@ -25,10 +25,10 @@ function error(res, msg, status = 500) {
 function readTitle(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.title)) {
-    return prop.title.map(t => t.plain_text).join("");
+    return prop.title.map((t) => t.plain_text).join("");
   }
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map(t => t.plain_text).join("");
+    return prop.rich_text.map((t) => t.plain_text).join("");
   }
   return "";
 }
@@ -48,17 +48,22 @@ function readSelect(prop) {
 function readRichText(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map(t => t.plain_text).join("").trim();
+    return prop.rich_text.map((t) => t.plain_text).join("").trim();
   }
   return "";
 }
 
-// ✅ FIX: solo detecta video por extensión real (.mp4 / .mov)
+/**
+ * Detecta si un asset es video o imagen.
+ * Fix: solo tratamos como video si *realmente* termina en .mp4 o .mov
+ * para evitar falsos positivos con nombres tipo "videoframe_7839.png".
+ */
 function guessAssetType(url) {
   if (!url) return "image";
-  const clean = url.split("?")[0].toLowerCase();
+  const l = url.toLowerCase();
 
-  if (clean.endsWith(".mp4") || clean.endsWith(".mov")) {
+  // Solo formatos de video reales
+  if (l.match(/\.(mp4|mov)(\?|$)/)) {
     return "video";
   }
 
@@ -71,11 +76,11 @@ function readTextUrl(prop) {
   if (prop.url) return prop.url.trim();
 
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map(t => t.plain_text).join("").trim() || null;
+    return prop.rich_text.map((t) => t.plain_text).join("").trim() || null;
   }
 
   if (Array.isArray(prop.title)) {
-    return prop.title.map(t => t.plain_text).join("").trim() || null;
+    return prop.title.map((t) => t.plain_text).join("").trim() || null;
   }
 
   if (typeof prop === "string") return prop.trim();
@@ -89,11 +94,14 @@ function readTextUrl(prop) {
 function extractAssets(props) {
   // 1. Attachment (files)
   if (props.Attachment?.files?.length) {
-    return props.Attachment.files.map(f => ({
-      url: f.file?.url || f.external?.url,
-      type: guessAssetType(f.file?.url || f.external?.url),
-      source: "attachment",
-    }));
+    return props.Attachment.files.map((f) => {
+      const url = f.file?.url || f.external?.url;
+      return {
+        url,
+        type: guessAssetType(url),
+        source: "attachment",
+      };
+    });
   }
 
   // 2. Link
@@ -118,7 +126,7 @@ function extractAssets(props) {
 function normalizePost(page) {
   const props = page.properties || {};
   const assets = extractAssets(props);
-  const isVideo = assets.some(a => a.type === "video");
+  const isVideo = assets.some((a) => a.type === "video");
 
   return {
     id: page.id,
@@ -148,7 +156,7 @@ function buildFilters(posts) {
   const platforms = new Set();
   const statuses = new Set();
 
-  posts.forEach(p => {
+  posts.forEach((p) => {
     if (p.platform) platforms.add(p.platform);
     if (p.status) statuses.add(p.status);
   });
@@ -164,7 +172,11 @@ function buildFilters(posts) {
 // -------------------------------
 export default async function handler(req, res) {
   if (!NOTION_TOKEN || !NOTION_DB_ID) {
-    return error(res, "Missing NOTION_TOKEN or NOTION_DATABASE_ID env vars.", 400);
+    return error(
+      res,
+      "Missing NOTION_TOKEN or NOTION_DATABASE_ID env vars.",
+      400
+    );
   }
 
   const notion = new Client({ auth: NOTION_TOKEN });
@@ -201,6 +213,10 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error("Notion API Error:", e);
-    return error(res, e.body?.message || e.message || "Notion query failed", 500);
+    return error(
+      res,
+      e.body?.message || e.message || "Notion query failed",
+      500
+    );
   }
 }
