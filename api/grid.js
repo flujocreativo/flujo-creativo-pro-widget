@@ -53,10 +53,15 @@ function readRichText(prop) {
   return "";
 }
 
+// ✅ FIX: solo detecta video por extensión real (.mp4 / .mov)
 function guessAssetType(url) {
   if (!url) return "image";
-  const l = url.toLowerCase();
-  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video")) return "video";
+  const clean = url.split("?")[0].toLowerCase();
+
+  if (clean.endsWith(".mp4") || clean.endsWith(".mov")) {
+    return "video";
+  }
+
   return "image";
 }
 
