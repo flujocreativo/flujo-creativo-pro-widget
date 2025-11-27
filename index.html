@@ -524,6 +524,19 @@
         right: 0;
       }
 
+      .more-wrap {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+      }
+      .btn-more {
+        border-radius: 999px;
+        font-size: 12px;
+        padding: 6px 16px;
+        background: #fff;
+        color: #111;
+      }
+
       @media (hover: hover) {
         .nav-btn {
           opacity: 0;
@@ -557,6 +570,9 @@
       /* Readonly */
       .ro .menu {
         display: none;
+      }
+      .ro .btn-more {
+        cursor: default;
       }
     </style>
   </head>
@@ -633,6 +649,10 @@
       </section>
 
       <section id="grid" class="grid" aria-live="polite"></section>
+
+      <div class="more-wrap">
+        <button id="btnMore" class="btn btn-more">Show more</button>
+      </div>
     </main>
 
     <div id="modal" class="modal" aria-hidden="true">
@@ -640,11 +660,7 @@
       <div class="modal-content">
         <div id="mediaWrap" class="media-wrap">
           <div id="modalMedia"></div>
-          <button
-            id="btnPrev"
-            class="nav-btn prev"
-            aria-label="Previous"
-          >
+          <button id="btnPrev" class="nav-btn prev" aria-label="Previous">
             ‹
           </button>
           <button id="btnNext" class="nav-btn next" aria-label="Next">›</button>
@@ -671,6 +687,7 @@
         modalAssets: [],
         modalIndex: 0,
         modalCaption: "",
+        visibleCount: 12, // <--- cuántos posts se muestran
       };
 
       // DOM
@@ -713,6 +730,7 @@
       const $zoneNext = document.getElementById("zoneNext");
 
       const $aiRefresh = document.getElementById("aiRefresh");
+      const $btnMore = document.getElementById("btnMore");
 
       function escapeHtml(s) {
         s = String(s || "");
@@ -772,11 +790,7 @@
         el.setAttribute("aria-checked", !!on);
       }
 
-      /**
-       * NUEVO formatDate
-       * Usamos solo la parte de fecha (YYYY-MM-DD) y creamos un Date local
-       * para evitar el desfase de timezone que te estaba restando 1 día.
-       */
+      // formatDate sin desfase de timezone
       function formatDate(dateStr) {
         if (!dateStr) return "";
 
@@ -944,7 +958,10 @@
 
       function renderGrid() {
         const ordered = sortWithSavedOrder(state.items);
-        const items = ordered.filter(passFilters).slice(0, 12);
+        const filtered = ordered.filter(passFilters);
+
+        // aplicar límite visibleCount
+        const items = filtered.slice(0, state.visibleCount);
 
         if (items.length === 0) {
           $grid.innerHTML = Array.from({ length: 9 })
@@ -952,6 +969,7 @@
               () => '<div class="card card-placeholder">No Content</div>'
             )
             .join("");
+          updateMoreButton(filtered.length);
           return;
         }
 
@@ -1037,6 +1055,8 @@
         if (!READONLY) {
           enableDnD(items.map((i) => i.id));
         }
+
+        updateMoreButton(filtered.length);
       }
 
       function enableDnD(visibleIds) {
@@ -1083,6 +1103,38 @@
             renderGrid();
           });
         });
+      }
+
+      // ---------- Show more / less ----------
+      function updateMoreButton(totalFiltered) {
+        if (!$btnMore) return;
+
+        if (totalFiltered <= 12) {
+          $btnMore.style.display = "none";
+          return;
+        }
+
+        $btnMore.style.display = "inline-flex";
+
+        if (state.visibleCount >= totalFiltered) {
+          $btnMore.textContent = "Show less";
+        } else {
+          $btnMore.textContent = "Show more";
+        }
+      }
+
+      function handleMoreClick() {
+        const ordered = sortWithSavedOrder(state.items);
+        const totalFiltered = ordered.filter(passFilters).length;
+
+        if (state.visibleCount >= totalFiltered) {
+          // volver a 12
+          state.visibleCount = 12;
+        } else {
+          // mostrar todo
+          state.visibleCount = totalFiltered;
+        }
+        renderGrid();
       }
 
       // ---------- modal ----------
@@ -1228,6 +1280,7 @@
             (localStorage.getItem("showBio") || "true") === "true";
           setSwitch($switchBio, state.showBio);
 
+          state.visibleCount = 12; // reset al cargar
           renderBio();
           renderMenus();
           renderGrid();
@@ -1244,6 +1297,7 @@
         saveFilters();
         $labelPlatforms.textContent = "All Platforms";
         $labelStatus.textContent = "All Status";
+        state.visibleCount = 12;
         closeDD();
         load();
       }
@@ -1296,6 +1350,12 @@
         e.stopPropagation();
         toggleBio();
       };
+
+      if ($btnMore && !READONLY) {
+        $btnMore.addEventListener("click", handleMoreClick);
+      } else if ($btnMore && READONLY) {
+        $btnMore.style.pointerEvents = "none";
+      }
 
       // go!
       load();
