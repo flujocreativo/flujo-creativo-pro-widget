@@ -10,7 +10,7 @@ const NOTION_TOKEN =
   process.env.NOTION_SECRET;
 
 const NOTION_DB_ID =
-  process.env.NOTION_DATABASE_ID || // ESTE es el que tú usas en Vercel
+  process.env.NOTION_DATABASE_ID ||
   process.env.NOTION_DB_ID ||
   process.env.NOTION_DB ||
   process.env.NOTION_CONTENT_DB_ID;
@@ -112,6 +112,8 @@ function extractAssets(props) {
 // -------------------------------
 function normalizePost(page) {
   const props = page.properties || {};
+  const assets = extractAssets(props);
+  const isVideo = assets.some(a => a.type === "video");
 
   return {
     id: page.id,
@@ -126,7 +128,8 @@ function normalizePost(page) {
     pinned: readCheckbox(props.Pinned),
     hide: readCheckbox(props.Hide),
 
-    assets: extractAssets(props),
+    assets,
+    isVideo,
 
     createdTime: page.created_time,
     url: page.url,
@@ -134,7 +137,7 @@ function normalizePost(page) {
 }
 
 // -------------------------------
-//  BUILD FILTERS (solo Platform y Status)
+//  BUILD FILTERS
 // -------------------------------
 function buildFilters(posts) {
   const platforms = new Set();
@@ -191,7 +194,6 @@ export default async function handler(req, res) {
       hasMore: resp.has_more,
       nextCursor: resp.next_cursor,
     });
-
   } catch (e) {
     console.error("Notion API Error:", e);
     return error(res, e.body?.message || e.message || "Notion query failed", 500);
