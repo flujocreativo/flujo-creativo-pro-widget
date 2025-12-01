@@ -56,8 +56,7 @@ function readRichText(prop) {
 function guessAssetType(url) {
   if (!url) return "image";
   const l = url.toLowerCase();
-  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video"))
-    return "video";
+  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video")) return "video";
   return "image";
 }
 
@@ -85,14 +84,11 @@ function readTextUrl(prop) {
 function extractAssets(props) {
   // 1. Attachment (files)
   if (props.Attachment?.files?.length) {
-    return props.Attachment.files.map((f) => {
-      const url = f.file?.url || f.external?.url;
-      return {
-        url,
-        type: guessAssetType(url),
-        source: "attachment",
-      };
-    });
+    return props.Attachment.files.map((f) => ({
+      url: f.file?.url || f.external?.url,
+      type: guessAssetType(f.file?.url || f.external?.url),
+      source: "attachment",
+    }));
   }
 
   // 2. Link
@@ -119,33 +115,9 @@ function normalizePost(page) {
   const assets = extractAssets(props);
   const isVideo = assets.some((a) => a.type === "video");
 
-  // Post Type (Grid / Reel / Both / vacío = auto)
-  const postType = readSelect(props["Post Type"]);
-
-  let showInGrid = false;
-  let showInReels = false;
-
-  if (postType === "Grid") {
-    showInGrid = true;
-    showInReels = false;
-  } else if (postType === "Reel" || postType === "Reels") {
-    showInGrid = false;
-    showInReels = true;
-  } else if (postType === "Both") {
-    showInGrid = true;
-    showInReels = true;
-  } else {
-    // Auto mode:
-    // - Video → aparece en ambos (como los reels que también se ven en el grid)
-    // - Imagen → solo grid
-    if (isVideo) {
-      showInGrid = true;
-      showInReels = true;
-    } else {
-      showInGrid = true;
-      showInReels = false;
-    }
-  }
+  // Post Type (Grid, Reel, Both...) – MUY tolerante
+  const rawPostType = readSelect(props["Post Type"]);
+  const postType = rawPostType || null; // el frontend decide el default
 
   return {
     id: page.id,
@@ -160,11 +132,7 @@ function normalizePost(page) {
     pinned: readCheckbox(props.Pinned),
     hide: readCheckbox(props.Hide),
 
-    // nuevo
-    postType,
-    showInGrid,
-    showInReels,
-
+    postType, // 👈 nuevo campo
     assets,
     isVideo,
 
@@ -196,11 +164,7 @@ function buildFilters(posts) {
 // -------------------------------
 export default async function handler(req, res) {
   if (!NOTION_TOKEN || !NOTION_DB_ID) {
-    return error(
-      res,
-      "Missing NOTION_TOKEN or NOTION_DATABASE_ID env vars.",
-      400
-    );
+    return error(res, "Missing NOTION_TOKEN or NOTION_DATABASE_ID env vars.", 400);
   }
 
   const notion = new Client({ auth: NOTION_TOKEN });
@@ -237,10 +201,6 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error("Notion API Error:", e);
-    return error(
-      res,
-      e.body?.message || e.message || "Notion query failed",
-      500
-    );
+    return error(e.body?.message || e.message || "Notion query failed", 500);
   }
 }
