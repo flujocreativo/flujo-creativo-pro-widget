@@ -25,10 +25,10 @@ function error(res, msg, status = 500) {
 function readTitle(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.title)) {
-    return prop.title.map((t) => t.plain_text).join("");
+    return prop.title.map(t => t.plain_text).join("");
   }
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t) => t.plain_text).join("");
+    return prop.rich_text.map(t => t.plain_text).join("");
   }
   return "";
 }
@@ -48,7 +48,7 @@ function readSelect(prop) {
 function readRichText(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t) => t.plain_text).join("").trim();
+    return prop.rich_text.map(t => t.plain_text).join("").trim();
   }
   return "";
 }
@@ -56,7 +56,15 @@ function readRichText(prop) {
 function guessAssetType(url) {
   if (!url) return "image";
   const l = url.toLowerCase();
-  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video")) return "video";
+  // IMPORTANTE: solo consideramos video por extensión,
+  // para no confundir imágenes de Canva tipo "video_frame".
+  if (
+    l.endsWith(".mp4") ||
+    l.endsWith(".mov") ||
+    l.endsWith(".webm")
+  ) {
+    return "video";
+  }
   return "image";
 }
 
@@ -66,11 +74,11 @@ function readTextUrl(prop) {
   if (prop.url) return prop.url.trim();
 
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t) => t.plain_text).join("").trim() || null;
+    return prop.rich_text.map(t => t.plain_text).join("").trim() || null;
   }
 
   if (Array.isArray(prop.title)) {
-    return prop.title.map((t) => t.plain_text).join("").trim() || null;
+    return prop.title.map(t => t.plain_text).join("").trim() || null;
   }
 
   if (typeof prop === "string") return prop.trim();
@@ -84,11 +92,14 @@ function readTextUrl(prop) {
 function extractAssets(props) {
   // 1. Attachment (files)
   if (props.Attachment?.files?.length) {
-    return props.Attachment.files.map((f) => ({
-      url: f.file?.url || f.external?.url,
-      type: guessAssetType(f.file?.url || f.external?.url),
-      source: "attachment",
-    }));
+    return props.Attachment.files.map(f => {
+      const url = f.file?.url || f.external?.url;
+      return {
+        url,
+        type: guessAssetType(url),
+        source: "attachment",
+      };
+    });
   }
 
   // 2. Link
@@ -113,11 +124,7 @@ function extractAssets(props) {
 function normalizePost(page) {
   const props = page.properties || {};
   const assets = extractAssets(props);
-  const isVideo = assets.some((a) => a.type === "video");
-
-  // Post Type (Grid, Reel, Both...) – MUY tolerante
-  const rawPostType = readSelect(props["Post Type"]);
-  const postType = rawPostType || null; // el frontend decide el default
+  const isVideo = assets.some(a => a.type === "video");
 
   return {
     id: page.id,
@@ -132,7 +139,9 @@ function normalizePost(page) {
     pinned: readCheckbox(props.Pinned),
     hide: readCheckbox(props.Hide),
 
-    postType, // 👈 nuevo campo
+    // NUEVO: viene directo de la propiedad "Post Type" (Grid / Reel / Both)
+    postType: readSelect(props["Post Type"]) || null,
+
     assets,
     isVideo,
 
@@ -148,7 +157,7 @@ function buildFilters(posts) {
   const platforms = new Set();
   const statuses = new Set();
 
-  posts.forEach((p) => {
+  posts.forEach(p => {
     if (p.platform) platforms.add(p.platform);
     if (p.status) statuses.add(p.status);
   });
@@ -201,6 +210,6 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error("Notion API Error:", e);
-    return error(e.body?.message || e.message || "Notion query failed", 500);
+    return error(res, e.body?.message || e.message || "Notion query failed", 500);
   }
 }
