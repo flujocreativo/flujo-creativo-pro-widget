@@ -243,10 +243,15 @@
   const READONLY = new URLSearchParams(window.location.search).get("readonly") === "1";
   if (READONLY) document.body.classList.add("ro");
 
+   const READONLY = new URLSearchParams(window.location.search).get("readonly") === "1";
+  if (READONLY) document.body.classList.add("ro");
+
+  const VIEW_GRID = "grid";
+  const VIEW_REELS = "reels";
+
   const state = {
     dbId: null,
     items: [],
-    viewMode: "grid",
     selectedPlatform: null,
     selectedStatus: null,
     savedOrder: [],
@@ -254,7 +259,19 @@
     showBio: true,
     modalAssets: [],
     modalIndex: 0,
-    modalCaption: ""
+    modalCaption: "",
+    viewType: VIEW_GRID, // 👈 vista actual
+  };
+
+  // DOM
+  const $grid = document.getElementById("grid");
+  const $btnRefresh = document.getElementById("btnRefresh");
+  const $btnFilter = document.getElementById("btnFilter");
+  const $filtersRow = document.getElementById("filtersRow");
+
+  // 👇 NUEVOS BOTONES (los iconos que ya tienes en el HTML)
+  const $btnViewGrid = document.getElementById("btnViewGrid");
+  const $btnViewReels = document.getElementById("btnViewReels");
   };
 
   // DOM
