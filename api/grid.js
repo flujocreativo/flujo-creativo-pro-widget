@@ -53,20 +53,11 @@ function readRichText(prop) {
   return "";
 }
 
-/**
- * Detecta si un asset es video o imagen.
- * Fix: solo tratamos como video si *realmente* termina en .mp4 o .mov
- * para evitar falsos positivos con nombres tipo "videoframe_7839.png".
- */
 function guessAssetType(url) {
   if (!url) return "image";
   const l = url.toLowerCase();
-
-  // Solo formatos de video reales
-  if (l.match(/\.(mp4|mov)(\?|$)/)) {
+  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video"))
     return "video";
-  }
-
   return "image";
 }
 
@@ -128,6 +119,34 @@ function normalizePost(page) {
   const assets = extractAssets(props);
   const isVideo = assets.some((a) => a.type === "video");
 
+  // Post Type (Grid / Reel / Both / vacío = auto)
+  const postType = readSelect(props["Post Type"]);
+
+  let showInGrid = false;
+  let showInReels = false;
+
+  if (postType === "Grid") {
+    showInGrid = true;
+    showInReels = false;
+  } else if (postType === "Reel" || postType === "Reels") {
+    showInGrid = false;
+    showInReels = true;
+  } else if (postType === "Both") {
+    showInGrid = true;
+    showInReels = true;
+  } else {
+    // Auto mode:
+    // - Video → aparece en ambos (como los reels que también se ven en el grid)
+    // - Imagen → solo grid
+    if (isVideo) {
+      showInGrid = true;
+      showInReels = true;
+    } else {
+      showInGrid = true;
+      showInReels = false;
+    }
+  }
+
   return {
     id: page.id,
     title: readTitle(props.Name) || "Untitled",
@@ -140,6 +159,11 @@ function normalizePost(page) {
 
     pinned: readCheckbox(props.Pinned),
     hide: readCheckbox(props.Hide),
+
+    // nuevo
+    postType,
+    showInGrid,
+    showInReels,
 
     assets,
     isVideo,
