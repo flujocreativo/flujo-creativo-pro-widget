@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Notion Grid Widget PRO</title>
+<title>Notion Grid Widget</title>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 <script src="https://animatedicons.co/scripts/embed-animated-icons.js"></script>
@@ -24,34 +24,22 @@
     border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;
     justify-content:center;
   }
-  .btn{
-    border:1px solid var(--border);background:#111;color:#fff;
-    padding:var(--ui-pad-y) var(--ui-pad-x);font-weight:700;cursor:pointer;
-    border-radius:10px;font-size:var(--ui-font);display:inline-flex;align-items:center;gap:8px
-  }
-  .btn-icon{
-    width:36px;height:36px;border:2px solid var(--border);background:#fff;
-    border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer
-  }
-
-  /* view mode icons */
-  .view-toggle{
-    display:inline-flex;gap:6px;border-radius:12px;background:#f5f5f5;
-    padding:3px;border:1px solid var(--border);
-  }
+  .view-group{display:inline-flex;gap:6px;margin-left:4px}
   .view-btn{
-    width:32px;height:32px;border-radius:9px;border:none;cursor:pointer;
-    background:transparent;display:flex;align-items:center;justify-content:center;
-    font-size:15px;color:#4b5563;
+    width:36px;height:36px;border:2px solid var(--border);background:#fff;
+    border-radius:12px;display:inline-flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:16px;
   }
   .view-btn.active{
-    background:#111;color:#fff;
+    background:#111;color:#fff;border-color:#111;
   }
+  .btn{border:1px solid var(--border);background:#111;color:#fff;
+    padding:var(--ui-pad-y) var(--ui-pad-x);font-weight:700;cursor:pointer;
+    border-radius:10px;font-size:var(--ui-font);display:inline-flex;align-items:center;gap:8px}
+  .btn-icon{width:36px;height:36px;border:2px solid var(--border);background:#fff;
+    border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 
-  .filters-row{
-    display:none;gap:10px;align-items:center;justify-content:center;
-    padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px
-  }
+  .filters-row{display:none;gap:10px;align-items:center;justify-content:center;padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px}
   .filters-row.open{display:flex}
 
   .dd{position:relative}
@@ -162,16 +150,6 @@
     .nav-btn{opacity:1}
   }
 
-  /* Show more */
-  .more-wrap{
-    display:flex;justify-content:center;margin:14px 0 4px;
-  }
-  .btn-secondary{
-    border:1px solid var(--border);background:#f9fafb;color:#111;
-    padding:var(--ui-pad-y) var(--ui-pad-x);border-radius:999px;
-    font-size:var(--ui-font);cursor:pointer;font-weight:500;
-  }
-
   /* Readonly */
   .ro .menu { display:none; }
 </style>
@@ -191,14 +169,12 @@
     <button id="btnFilter" class="btn-icon" title="Filter">
       <i class="fa-solid fa-sliders"></i>
     </button>
-
-    <!-- Grid / Reels icons -->
-    <div class="view-toggle" id="viewToggle">
-      <button id="btnViewGrid" class="view-btn active" title="Grid view">
+    <div class="view-group" aria-label="View mode">
+      <button id="btnViewGrid" class="view-btn" title="Grid view">
         <i class="fa-solid fa-table-cells"></i>
       </button>
       <button id="btnViewReels" class="view-btn" title="Reels view">
-        <i class="fa-solid fa-film"></i>
+        <i class="fa-solid fa-clapperboard"></i>
       </button>
     </div>
 
@@ -247,10 +223,6 @@
   </section>
 
   <section id="grid" class="grid" aria-live="polite"></section>
-
-  <div class="more-wrap">
-    <button id="btnShowMore" class="btn-secondary" style="display:none;">Show more</button>
-  </div>
 </main>
 
 <div id="modal" class="modal" aria-hidden="true">
@@ -271,11 +243,10 @@
   const READONLY = new URLSearchParams(window.location.search).get("readonly") === "1";
   if (READONLY) document.body.classList.add("ro");
 
-  const BASE_LIMIT = 12;
-
   const state = {
     dbId: null,
     items: [],
+    viewMode: "grid",
     selectedPlatform: null,
     selectedStatus: null,
     savedOrder: [],
@@ -283,15 +254,15 @@
     showBio: true,
     modalAssets: [],
     modalIndex: 0,
-    modalCaption: "",
-    viewMode: "grid",   // "grid" | "reels"
-    showAll: false
+    modalCaption: ""
   };
 
   // DOM
   const $grid = document.getElementById("grid");
   const $btnRefresh = document.getElementById("btnRefresh");
   const $btnFilter = document.getElementById("btnFilter");
+  const $btnViewGrid = document.getElementById("btnViewGrid");
+  const $btnViewReels = document.getElementById("btnViewReels");
   const $filtersRow = document.getElementById("filtersRow");
 
   const $ddPlatforms = document.getElementById("ddPlatforms");
@@ -328,10 +299,6 @@
   const $zoneNext = document.getElementById("zoneNext");
 
   const $aiRefresh = document.getElementById("aiRefresh");
-
-  const $btnViewGrid = document.getElementById("btnViewGrid");
-  const $btnViewReels = document.getElementById("btnViewReels");
-  const $btnShowMore = document.getElementById("btnShowMore");
 
   function escapeHtml(s){
     s = String(s || "");
@@ -393,15 +360,15 @@
   }
 
   // ---------- filters helpers ----------
-  function passPlatform(it){ return !state.selectedPlatform || it.platform === state.selectedPlatform; }
-  function passStatus(it){ return !state.selectedStatus || it.status === state.selectedStatus; }
-  function passFilters(it){ return passPlatform(it) && passStatus(it); }
-
-  // view-mode helper
+  function passPlatform(it){ return !state.selectedPlatform || it.platform===state.selectedPlatform; }
+  function passStatus(it){ return !state.selectedStatus || it.status===state.selectedStatus; }
   function passViewMode(it){
-    if (state.viewMode === "reels") return !!it.showInReels;
-    return !!it.showInGrid;
+    if (state.viewMode === "reels"){
+      return !!it.isVideo;
+    }
+    return true;
   }
+  function passFilters(it){ return passPlatform(it) && passStatus(it) && passViewMode(it); }
 
   // ---------- menus ----------
   function closeDD(){
@@ -483,7 +450,7 @@
   }
 
   function updateCounts(){
-    const filtered = state.items.filter(passFilters).filter(passViewMode);
+    const filtered = state.items.filter(passFilters);
     $countPlatforms.textContent = state.selectedPlatform ? `(${filtered.length})` : "";
     $countStatus.textContent = state.selectedStatus ? `(${filtered.length})` : "";
   }
@@ -508,21 +475,14 @@
 
   function renderGrid(){
     const ordered = sortWithSavedOrder(state.items);
+    const items = ordered.filter(passFilters).slice(0, 12);
 
-    let items = ordered.filter(passFilters).filter(passViewMode);
-    const total = items.length;
-
-    const limit = state.showAll ? total : BASE_LIMIT;
-    const visible = items.slice(0, limit);
-
-    if (visible.length === 0){
+    if (items.length === 0){
       $grid.innerHTML = Array.from({length:9}).map(() => '<div class="card card-placeholder">No Content</div>').join("");
-
-      $btnShowMore.style.display = "none";
       return;
     }
 
-    $grid.innerHTML = visible.map((it, index) => {
+    $grid.innerHTML = items.map((it, index) => {
       const badges = [];
       if (it.isVideo) badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
       if (it.pinned)  badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
@@ -558,14 +518,6 @@
       </article>`;
     }).join("");
 
-    // show more / less button
-    if (total > BASE_LIMIT){
-      $btnShowMore.style.display = "inline-flex";
-      $btnShowMore.textContent = state.showAll ? "Show less" : "Show more";
-    } else {
-      $btnShowMore.style.display = "none";
-    }
-
     // hover video
     Array.from($grid.querySelectorAll("video.card-video")).forEach(vid => {
       const card = vid.closest(".card");
@@ -591,11 +543,11 @@
     });
 
     if (!READONLY){
-      enableDnD(visible.map(i => i.id), items.map(i => i.id));
+      enableDnD(items.map(i => i.id));
     }
   }
 
-  function enableDnD(visibleIds, allFilteredIds){
+  function enableDnD(visibleIds){
     let dragged = null;
     let startIdx = null;
 
@@ -631,7 +583,7 @@
         const moved = vis.splice(from, 1)[0];
         vis.splice(to, 0, moved);
 
-        const remaining = (state.savedOrder || []).filter(id => !allFilteredIds.includes(id));
+        const remaining = (state.savedOrder || []).filter(id => !visibleIds.includes(id));
         state.savedOrder = vis.concat(remaining);
         saveOrder();
         renderGrid();
@@ -757,21 +709,6 @@
     renderBio();
   }
 
-  // ---------- view mode ----------
-  function updateViewButtons(){
-    $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
-    $btnViewReels.classList.toggle("active", state.viewMode === "reels");
-  }
-
-  function setViewMode(mode){
-    if (mode === state.viewMode) return;
-    state.viewMode = mode;
-    state.showAll = false; // cuando cambias de pestaña, vuelves al límite base
-    updateViewButtons();
-    renderGrid();
-    updateCounts();
-  }
-
   // ---------- load data ----------
   async function load(){
     renderSkeleton();
@@ -794,10 +731,6 @@
       state.showBio = (localStorage.getItem("showBio") || "true") === "true";
       setSwitch($switchBio, state.showBio);
 
-      state.viewMode = "grid";
-      state.showAll = false;
-      updateViewButtons();
-
       renderBio();
       renderMenus();
       renderGrid();
@@ -811,12 +744,9 @@
   function handleRefresh(){
     state.selectedPlatform = null;
     state.selectedStatus = null;
-    state.viewMode = "grid";
-    state.showAll = false;
     saveFilters();
     $labelPlatforms.textContent = "All Platforms";
     $labelStatus.textContent = "All Status";
-    updateViewButtons();
     closeDD();
     load();
   }
@@ -829,11 +759,43 @@
     });
   }
 
-  $btnFilter.onclick = () => {
+  $btnFilter.onclick = function(){
     const isOpen = $filtersRow.classList.contains("open");
     if (isOpen) $filtersRow.classList.remove("open");
     else $filtersRow.classList.add("open");
   };
+
+  function setViewMode(mode){
+    state.viewMode = mode;
+    try { localStorage.setItem("viewMode", mode); } catch(e){}
+    if ($btnViewGrid && $btnViewReels){
+      $btnViewGrid.classList.toggle("active", mode === "grid");
+      $btnViewReels.classList.toggle("active", mode === "reels");
+    }
+    renderGrid();
+  }
+
+  (function initViewMode(){
+    let saved = null;
+    try { saved = localStorage.getItem("viewMode"); } catch(e){}
+    if (saved === "reels") state.viewMode = "reels";
+    else state.viewMode = "grid";
+    if ($btnViewGrid && $btnViewReels){
+      $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
+      $btnViewReels.classList.toggle("active", state.viewMode === "reels");
+    }
+  })();
+
+  if ($btnViewGrid){
+    $btnViewGrid.onclick = function(){
+      setViewMode("grid");
+    };
+  }
+  if ($btnViewReels){
+    $btnViewReels.onclick = function(){
+      setViewMode("reels");
+    };
+  }
 
   $togglePlatforms.onclick = e => {
     e.stopPropagation();
@@ -865,14 +827,6 @@
 
   $rowBio.onclick = toggleBio;
   $switchBio.onclick = e => { e.stopPropagation(); toggleBio(); };
-
-  $btnViewGrid.onclick = () => setViewMode("grid");
-  $btnViewReels.onclick = () => setViewMode("reels");
-
-  $btnShowMore.onclick = () => {
-    state.showAll = !state.showAll;
-    renderGrid();
-  };
 
   // go!
   load();
