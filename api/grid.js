@@ -56,15 +56,7 @@ function readRichText(prop) {
 function guessAssetType(url) {
   if (!url) return "image";
   const l = url.toLowerCase();
-  // IMPORTANTE: solo consideramos video por extensión,
-  // para no confundir imágenes de Canva tipo "video_frame".
-  if (
-    l.endsWith(".mp4") ||
-    l.endsWith(".mov") ||
-    l.endsWith(".webm")
-  ) {
-    return "video";
-  }
+  if (l.includes(".mp4") || l.includes(".mov") || l.includes("video")) return "video";
   return "image";
 }
 
@@ -92,14 +84,11 @@ function readTextUrl(prop) {
 function extractAssets(props) {
   // 1. Attachment (files)
   if (props.Attachment?.files?.length) {
-    return props.Attachment.files.map(f => {
-      const url = f.file?.url || f.external?.url;
-      return {
-        url,
-        type: guessAssetType(url),
-        source: "attachment",
-      };
-    });
+    return props.Attachment.files.map(f => ({
+      url: f.file?.url || f.external?.url,
+      type: guessAssetType(f.file?.url || f.external?.url),
+      source: "attachment",
+    }));
   }
 
   // 2. Link
@@ -139,7 +128,7 @@ function normalizePost(page) {
     pinned: readCheckbox(props.Pinned),
     hide: readCheckbox(props.Hide),
 
-    // NUEVO: viene directo de la propiedad "Post Type" (Grid / Reel / Both)
+    // NEW: Post Type (Grid / Reel / Both)
     postType: readSelect(props["Post Type"]) || null,
 
     assets,
