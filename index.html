@@ -36,7 +36,7 @@
   }
 
   /* view toggles (Grid / Reels) */
-  .view-toggle {
+  .view-toggle{
     transition:background .15s,border-color .15s,color .15s, box-shadow .15s;
   }
   .view-toggle.active{
@@ -325,7 +325,7 @@
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    viewMode: "grid" // "grid" | "reels"
+    viewMode: "grid" // por ahora SOLO afecta los botones, no datos
   };
 
   // DOM
@@ -435,22 +435,9 @@
   function passPlatform(it){ return !state.selectedPlatform || it.platform === state.selectedPlatform; }
   function passStatus(it){ return !state.selectedStatus || it.status === state.selectedStatus; }
 
-  // NEW: filtro por Post Type / viewMode
-  function passView(it){
-    const pt = it.postType || "Grid"; // default si está vacío
-    if (state.viewMode === "grid"){
-      // Grid tab → Grid + Both
-      return pt === "Grid" || pt === "Both";
-    }
-    if (state.viewMode === "reels"){
-      // Reels tab → Reel + Both
-      return pt === "Reel" || pt === "Both";
-    }
-    return true;
-  }
-
+  // POR AHORA: viewMode NO afecta filtros de datos
   function passFilters(it){
-    return passView(it) && passPlatform(it) && passStatus(it);
+    return passPlatform(it) && passStatus(it);
   }
 
   // ---------- menus ----------
@@ -462,15 +449,13 @@
   function renderMenus(){
     const Pset = new Map(), Sset = new Map();
 
-    // Sólo contamos los que pasan por la vista actual
     state.items.forEach(it => {
-      if (!passView(it)) return;
       if (it.platform) Pset.set(it.platform, (Pset.get(it.platform)||0)+1);
       if (it.status)   Sset.set(it.status,   (Sset.get(it.status)||0)+1);
     });
 
-    const allP = state.items.filter(it => passView(it) && passStatus(it));
-    const allS = state.items.filter(it => passView(it) && passPlatform(it));
+    const allP = state.items.filter(passStatus);
+    const allS = state.items.filter(passPlatform);
 
     const platforms = Array.from(Pset.keys());
     platforms.sort((a,b) => (Pset.get(b)||0)-(Pset.get(a)||0));
@@ -479,7 +464,7 @@
 
     const Pmenu = ["All Platforms", ...platforms];
     const countByPlatform = {};
-    allP.forEach(it => { countByPlatform[it.platform] = (countByPlatform[it.platform]||0)+1; });
+    allP.forEach(it => { countByPlatform[it.platform] = (countByPlatform[it.platform)||0)+1; });
 
     $menuPlatforms.innerHTML = Pmenu.map(name => {
       const count = name === "All Platforms" ? allP.length : (countByPlatform[name]||0);
@@ -795,7 +780,7 @@
     renderBio();
   }
 
-  // ---------- view toggles ----------
+  // ---------- view toggles (solo UI por ahora) ----------
   function updateViewButtons(){
     $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
@@ -804,17 +789,13 @@
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     updateViewButtons();
-    renderMenus();
-    renderGrid();
-    updateCounts();
+    // en esta fase, NO cambiamos filtros de datos
   };
 
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
     updateViewButtons();
-    renderMenus();
-    renderGrid();
-    updateCounts();
+    // en esta fase, NO cambiamos filtros de datos
   };
 
   // ---------- load data ----------
@@ -843,6 +824,7 @@
       renderMenus();
       renderGrid();
       updateCounts();
+      updateViewButtons();
     } catch (e){
       console.error("Load error:", e);
     }
