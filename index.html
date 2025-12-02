@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Notion Grid Widget PRO</title>
+<title>Notion Grid Widget</title>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 <script src="https://animatedicons.co/scripts/embed-animated-icons.js"></script>
@@ -27,28 +27,34 @@
   .btn{
     border:1px solid var(--border);background:#111;color:#fff;
     padding:var(--ui-pad-y) var(--ui-pad-x);font-weight:700;cursor:pointer;
-    border-radius:10px;font-size:var(--ui-font);
-    display:inline-flex;align-items:center;gap:8px
+    border-radius:10px;font-size:var(--ui-font);display:inline-flex;align-items:center;gap:8px;
   }
   .btn-icon{
     width:36px;height:36px;border:2px solid var(--border);background:#fff;
-    border-radius:12px;display:inline-flex;align-items:center;justify-content:center;
-    cursor:pointer;font-size:16px;
+    border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:16px;
   }
-  .btn-icon.active{
-    background:#111;color:#fff;border-color:#111;
+
+  /* view toggles (Grid / Reels) */
+  .view-toggle {
+    transition:background .15s,border-color .15s,color .15s, box-shadow .15s;
+  }
+  .view-toggle.active{
+    background:#111;
+    color:#fff;
+    border-color:#111;
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
   }
 
   .filters-row{
     display:none;gap:10px;align-items:center;justify-content:center;
-    padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px
+    padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px;
   }
   .filters-row.open{display:flex}
 
   .dd{position:relative}
   .dd-toggle{
-    border:2px solid var(--border);background:#f6f6f6;
-    padding:var(--ui-pad-y) var(--ui-pad-x);
+    border:2px solid var(--border);background:#f6f6f6;padding:var(--ui-pad-y) var(--ui-pad-x);
     min-width:var(--dd-minw);max-width:200px;cursor:pointer;display:inline-flex;
     justify-content:space-between;align-items:center;gap:8px;border-radius:var(--ui-radius);
     font-weight:600;font-size:var(--ui-font);white-space:nowrap
@@ -66,7 +72,7 @@
   .dd-item.active .radio{border-color:#111}
   .dd-item.active .radio::after{
     content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    width:7px;height:7px;background:#111;border-radius:50%
+    width:7px;height:7px;background:#111;border-radius:50%;
   }
   .dd-item .label{flex:1}
   .dd-item .count{color:#999;font-size:12px}
@@ -79,24 +85,25 @@
   .menu.open .menu-panel{display:block}
   .menu-row{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;cursor:pointer}
   .menu-row:hover{background:#f9fafb}
-  .switch{
-    position:relative;width:42px;height:22px;background:#ddd;cursor:pointer;border-radius:12px
-  }
+  .switch{position:relative;width:42px;height:22px;background:#ddd;cursor:pointer;border-radius:12px}
   .switch::after{
     content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;
     transition:transform .18s;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2)
   }
-  .switch.on{background:#111}.switch.on::after{transform:translateX(20px)}
+  .switch.on{background:#111}
+  .switch.on::after{transform:translateX(20px)}
   .menu-note{
-    color:#6b7280;font-size:12px;padding:8px 0;margin-top:8px;border-top:1px solid var(--border);line-height:1.4
+    color:#6b7280;font-size:12px;padding:8px 0;margin-top:8px;
+    border-top:1px solid var(--border);line-height:1.4;
   }
 
   .bio{
-    display:none;border:1px solid var(--border);padding:14px;margin:10px 0 12px;border-radius:12px
+    display:none;border:1px solid var(--border);padding:14px;margin:10px 0 12px;border-radius:12px;
   }
   .bio.visible{display:block}
   .bio-top{
-    display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;margin-bottom:4px
+    display:grid;grid-template-columns:56px 1fr;gap:10px;
+    align-items:center;margin-bottom:4px;
   }
   .bio-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#eee}
   .bio-username{font-weight:800;font-size:16px}
@@ -105,47 +112,53 @@
   .bio-link a{color:#1B4B91;text-decoration:none;font-weight:600;font-size:14px}
 
   .grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0
+    display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0;
   }
   .card{
-    position:relative;background:#f5f5f5;cursor:grab;overflow:hidden;aspect-ratio:4/5;
-    transition:opacity .2s,transform .2s
+    position:relative;background:#f5f5f5;cursor:grab;overflow:hidden;
+    aspect-ratio:4/5;transition:opacity .2s,transform .2s;
   }
   .card.dragging{opacity:.5;cursor:grabbing;transform:scale(1.05);z-index:100}
   .card.drag-over{outline:1px solid #e5e7eb}
-  .card-img,.card-video{width:100%;height:100%;object-fit:cover;display:block}
+  .card-img,.card-video{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
   .card-video{pointer-events:none}
   .card-video::-webkit-media-controls-enclosure,
   .card-video::-webkit-media-controls{display:none !important;}
 
   .badge{
-    position:absolute;top:6px;right:6px;z-index:2;display:flex;gap:6px;align-items:center
+    position:absolute;top:6px;right:6px;z-index:2;display:flex;gap:6px;align-items:center;
   }
-  .badge i{font-size:13px;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
+  .badge i{
+    font-size:13px;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
+  }
   .badge .fa-play{font-size:12px;opacity:.95}
 
   .card-overlay{
     position:absolute;bottom:0;left:0;right:0;
     background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
     padding:8px;display:flex;justify-content:space-between;align-items:flex-end;
-    color:#fff;opacity:0;transition:opacity .18s ease
+    color:#fff;opacity:0;transition:opacity .18s ease;
   }
   .card:hover .card-overlay{opacity:1}
   .card-title{
-    font-weight:600;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.5)
+    font-weight:600;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.5);
   }
   .card-title:empty{display:none;}
-  .card-date{font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
+  .card-date{
+    font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5);
+  }
   .card-placeholder{
-    display:flex;align-items:center;justify-content:center;color:#aaa;
-    font-size:14px;font-weight:500
+    display:flex;align-items:center;justify-content:center;
+    color:#aaa;font-size:14px;font-weight:500;
   }
 
   /* Skeleton */
   .card.skel{background:#f3f4f6;cursor:default}
   .card.skel::before{
     content:"";position:absolute;inset:0;
-    background:linear-gradient(90deg,#f3f4f6 0%,#e5e7eb 50%,#f3f4f6 100%);
+    background:linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
     animation:pulse 1.4s ease-in-out infinite;
   }
   @keyframes pulse{
@@ -154,49 +167,39 @@
     100%{transform:translateX(20%);}
   }
 
-  .show-more-wrap{
-    display:flex;justify-content:center;margin:12px 0 4px;
-  }
-  #btnShowMore{
-    border:1px solid var(--border);background:#f9f9f9;color:#111;
-    padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;
-  }
-
   .modal{
     position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
-    align-items:center;justify-content:center;z-index:50;padding:20px
+    align-items:center;justify-content:center;z-index:50;padding:20px;
   }
   .modal.open{display:flex}
   .modal-close{
     position:absolute;top:20px;right:20px;width:40px;height:40px;
-    background:rgba(255,255,255,0.9);border:none;border-radius:50%;
-    cursor:pointer;font-size:24px;font-weight:bold;display:flex;
-    align-items:center;justify-content:center;color:#111
+    background:rgba(255,255,255,0.9);border:none;border-radius:50%;cursor:pointer;
+    font-size:24px;font-weight:bold;display:flex;align-items:center;justify-content:center;color:#111;
   }
 
   .modal-content{
-    max-width:90vw;max-height:90vh;display:flex;flex-direction:column;
-    align-items:center;gap:12px
+    max-width:90vw;max-height:90vh;display:flex;
+    flex-direction:column;align-items:center;gap:12px;
   }
   .media-wrap{
-    position:relative;max-width:90vw;max-height:80vh;display:flex;
-    align-items:center;justify-content:center
+    position:relative;max-width:90vw;max-height:80vh;
+    display:flex;align-items:center;justify-content:center;
   }
   .modal-media{
     max-width:90vw;max-height:80vh;object-fit:contain;
-    box-shadow:0 8px 32px rgba(0,0,0,.4)
+    box-shadow:0 8px 32px rgba(0,0,0,.4);
   }
   .modal-caption{
-    color:#fff;font-size:14px;line-height:1.5;max-width:600px;
-    text-align:center;padding:0 20px
+    color:#fff;font-size:14px;line-height:1.5;
+    max-width:600px;text-align:center;padding:0 20px;
   }
 
   .nav-btn{
     position:absolute;top:50%;transform:translateY(-50%);
     width:40px;height:40px;border:none;border-radius:999px;
-    background:rgba(255,255,255,.85);display:flex;align-items:center;
-    justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);
-    opacity:.85;transition:opacity .15s
+    background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:.85;transition:opacity .15s;
   }
   .nav-btn:hover{opacity:1}
   .nav-btn.prev{left:8px}
@@ -238,12 +241,12 @@
       <i class="fa-solid fa-sliders"></i>
     </button>
 
-    <!-- Vista Grid / Reels -->
-    <button id="btnViewGrid" class="btn-icon active" title="Grid view">
+    <!-- View toggles -->
+    <button id="btnViewGrid" class="btn-icon view-toggle active" title="Grid view">
       <i class="fa-solid fa-table-cells-large"></i>
     </button>
-    <button id="btnViewReels" class="btn-icon" title="Reels view">
-      <i class="fa-regular fa-square"></i>
+    <button id="btnViewReels" class="btn-icon view-toggle" title="Reels view">
+      <i class="fa-solid fa-film"></i>
     </button>
 
     <div class="menu" id="menu">
@@ -291,10 +294,6 @@
   </section>
 
   <section id="grid" class="grid" aria-live="polite"></section>
-
-  <div class="show-more-wrap">
-    <button id="btnShowMore" style="display:none;">Show more</button>
-  </div>
 </main>
 
 <div id="modal" class="modal" aria-hidden="true">
@@ -315,9 +314,6 @@
   const READONLY = new URLSearchParams(window.location.search).get("readonly") === "1";
   if (READONLY) document.body.classList.add("ro");
 
-  const VIEW_GRID = "grid";
-  const VIEW_REELS = "reels";
-
   const state = {
     dbId: null,
     items: [],
@@ -329,9 +325,7 @@
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    viewType: VIEW_GRID,
-    visibleCount: 12,
-    expanded: false,
+    viewMode: "grid" // "grid" | "reels"
   };
 
   // DOM
@@ -377,7 +371,6 @@
 
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
-  const $btnShowMore = document.getElementById("btnShowMore");
 
   function escapeHtml(s){
     s = String(s || "");
@@ -423,10 +416,7 @@
     }catch(e){}
   }
 
-  function setSwitch(el,on){
-    el.classList.toggle("on",!!on);
-    el.setAttribute("aria-checked",!!on);
-  }
+  function setSwitch(el,on){ el.classList.toggle("on",!!on); el.setAttribute("aria-checked",!!on); }
 
   function formatDate(dateStr){
     if(!dateStr) return "";
@@ -439,33 +429,28 @@
   function renderSkeleton(){
     const n = 9;
     $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
-    if ($btnShowMore) $btnShowMore.style.display = "none";
   }
 
   // ---------- filters helpers ----------
   function passPlatform(it){ return !state.selectedPlatform || it.platform === state.selectedPlatform; }
   function passStatus(it){ return !state.selectedStatus || it.status === state.selectedStatus; }
 
-  function postTypeFor(post){
-    const raw = post.postType || (post.isVideo ? "Reel" : "Grid");
-    return String(raw || "").toLowerCase();
-  }
-
-  function passViewType(it){
-    const t = postTypeFor(it); // "grid" | "reel" | "both" | etc.
-    if (state.viewType === VIEW_GRID){
-      return t === "grid" || t === "both" || t === "" || t === "unknown";
+  // NEW: filtro por Post Type / viewMode
+  function passView(it){
+    const pt = it.postType || "Grid"; // default si está vacío
+    if (state.viewMode === "grid"){
+      // Grid tab → Grid + Both
+      return pt === "Grid" || pt === "Both";
     }
-    if (state.viewType === VIEW_REELS){
-      if (t === "reel" || t === "both") return true;
-      if (!it.postType && it.isVideo) return true;
-      return false;
+    if (state.viewMode === "reels"){
+      // Reels tab → Reel + Both
+      return pt === "Reel" || pt === "Both";
     }
     return true;
   }
 
   function passFilters(it){
-    return passPlatform(it) && passStatus(it) && passViewType(it);
+    return passView(it) && passPlatform(it) && passStatus(it);
   }
 
   // ---------- menus ----------
@@ -476,13 +461,16 @@
 
   function renderMenus(){
     const Pset = new Map(), Sset = new Map();
+
+    // Sólo contamos los que pasan por la vista actual
     state.items.forEach(it => {
+      if (!passView(it)) return;
       if (it.platform) Pset.set(it.platform, (Pset.get(it.platform)||0)+1);
       if (it.status)   Sset.set(it.status,   (Sset.get(it.status)||0)+1);
     });
 
-    const allP = state.items.filter(it => passStatus(it) && passViewType(it));
-    const allS = state.items.filter(it => passPlatform(it) && passViewType(it));
+    const allP = state.items.filter(it => passView(it) && passStatus(it));
+    const allS = state.items.filter(it => passView(it) && passPlatform(it));
 
     const platforms = Array.from(Pset.keys());
     platforms.sort((a,b) => (Pset.get(b)||0)-(Pset.get(a)||0));
@@ -518,7 +506,7 @@
 
     const Smenu = ["All Status", ...statuses];
     const countByStatus = {};
-    allS.forEach(it => { countByStatus[it.status] = (countByStatus[it.status]||0)+1; });
+    allS.forEach(it => { countByStatus[it.status] = (countByStatus[it.status)||0)+1; });
 
     $menuStatus.innerHTML = Smenu.map(name => {
       const count = name === "All Status" ? allS.length : (countByStatus[name]||0);
@@ -573,13 +561,10 @@
 
   function renderGrid(){
     const ordered = sortWithSavedOrder(state.items);
-    const filtered = ordered.filter(passFilters);
-    const maxVisible = state.expanded ? filtered.length : state.visibleCount;
-    const items = filtered.slice(0, maxVisible);
+    const items = ordered.filter(passFilters).slice(0, 12);
 
-    if (filtered.length === 0){
-      $grid.innerHTML = '<div class="card card-placeholder">No Content</div>';
-      if ($btnShowMore) $btnShowMore.style.display = "none";
+    if (items.length === 0){
+      $grid.innerHTML = Array.from({length:9}).map(() => '<div class="card card-placeholder">No Content</div>').join("");
       return;
     }
 
@@ -606,6 +591,7 @@
         : '<div class="card-title"></div>';
 
       const draggable = READONLY ? "false" : "true";
+
       const safeItem = JSON.stringify(it).replace(/'/g,"&apos;");
 
       return `<article class="card" draggable="${draggable}" data-index="${index}" data-id="${it.id}" data-item='${safeItem}'>
@@ -617,16 +603,6 @@
         </div>
       </article>`;
     }).join("");
-
-    // show more / less
-    if ($btnShowMore){
-      if (filtered.length > state.visibleCount){
-        $btnShowMore.style.display = "inline-flex";
-        $btnShowMore.textContent = state.expanded ? "Show less" : "Show more";
-      } else {
-        $btnShowMore.style.display = "none";
-      }
-    }
 
     // hover video
     Array.from($grid.querySelectorAll("video.card-video")).forEach(vid => {
@@ -819,35 +795,27 @@
     renderBio();
   }
 
-  // ---------- view buttons ----------
+  // ---------- view toggles ----------
   function updateViewButtons(){
-    if ($btnViewGrid && $btnViewReels){
-      $btnViewGrid.classList.toggle("active", state.viewType === VIEW_GRID);
-      $btnViewReels.classList.toggle("active", state.viewType === VIEW_REELS);
-    }
+    $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
+    $btnViewReels.classList.toggle("active", state.viewMode === "reels");
   }
 
-  if ($btnViewGrid){
-    $btnViewGrid.onclick = () => {
-      state.viewType = VIEW_GRID;
-      state.expanded = false;
-      updateViewButtons();
-      renderGrid();
-      renderMenus();
-      updateCounts();
-    };
-  }
+  $btnViewGrid.onclick = () => {
+    state.viewMode = "grid";
+    updateViewButtons();
+    renderMenus();
+    renderGrid();
+    updateCounts();
+  };
 
-  if ($btnViewReels){
-    $btnViewReels.onclick = () => {
-      state.viewType = VIEW_REELS;
-      state.expanded = false;
-      updateViewButtons();
-      renderGrid();
-      renderMenus();
-      updateCounts();
-    };
-  }
+  $btnViewReels.onclick = () => {
+    state.viewMode = "reels";
+    updateViewButtons();
+    renderMenus();
+    renderGrid();
+    updateCounts();
+  };
 
   // ---------- load data ----------
   async function load(){
@@ -870,11 +838,6 @@
 
       state.showBio = (localStorage.getItem("showBio") || "true") === "true";
       setSwitch($switchBio, state.showBio);
-
-      // reset view & show more
-      state.viewType = VIEW_GRID;
-      state.expanded = false;
-      updateViewButtons();
 
       renderBio();
       renderMenus();
@@ -940,13 +903,6 @@
 
   $rowBio.onclick = toggleBio;
   $switchBio.onclick = e => { e.stopPropagation(); toggleBio(); };
-
-  if ($btnShowMore){
-    $btnShowMore.onclick = () => {
-      state.expanded = !state.expanded;
-      renderGrid();
-    };
-  }
 
   // go!
   load();
