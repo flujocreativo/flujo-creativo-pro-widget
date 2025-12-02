@@ -35,7 +35,6 @@
     font-size:16px;
   }
 
-  /* view toggles (Grid / Reels) */
   .view-toggle{
     transition:background .15s,border-color .15s,color .15s, box-shadow .15s;
   }
@@ -154,7 +153,6 @@
     color:#aaa;font-size:14px;font-weight:500;
   }
 
-  /* Skeleton */
   .card.skel{background:#f3f4f6;cursor:default}
   .card.skel::before{
     content:"";position:absolute;inset:0;
@@ -221,7 +219,6 @@
     .nav-btn{opacity:1}
   }
 
-  /* Readonly */
   .ro .menu { display:none; }
 </style>
 </head>
@@ -241,7 +238,6 @@
       <i class="fa-solid fa-sliders"></i>
     </button>
 
-    <!-- View toggles -->
     <button id="btnViewGrid" class="btn-icon view-toggle active" title="Grid view">
       <i class="fa-solid fa-table-cells-large"></i>
     </button>
@@ -262,19 +258,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Caja de error visible cuando algo se rompe -->
-  <div id="errorBox" style="display:none;
-    max-width:800px;margin:0 auto 10px auto;
-    padding:10px 12px;border-radius:10px;
-    border:1px solid #fecaca;
-    background:#fef2f2;color:#b91c1c;
-    font-size:13px;line-height:1.4;">
-  </div>
-
-  <!-- Mini debug: cuántos posts cargó -->
-  <div id="debugBox" style="max-width:800px;margin:0 auto 8px auto;
-    font-size:12px;color:#6b7280;text-align:right;"></div>
 
   <div id="filtersRow" class="filters-row">
     <div class="dd" id="ddPlatforms">
@@ -338,10 +321,9 @@
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    viewMode: "grid" // por ahora solo UI
+    viewMode: "grid"
   };
 
-  // DOM
   const $grid = document.getElementById("grid");
   const $btnRefresh = document.getElementById("btnRefresh");
   const $btnFilter = document.getElementById("btnFilter");
@@ -385,9 +367,6 @@
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
 
-  const $errorBox = document.getElementById("errorBox");
-  const $debugBox = document.getElementById("debugBox");
-
   function escapeHtml(s){
     s = String(s || "");
     return s
@@ -401,9 +380,12 @@
   function storageKey(){ return state.dbId ? `order-${state.dbId}` : "order-default"; }
   function filtersKey(){ return state.dbId ? `filters-${state.dbId}` : "filters-default"; }
 
+  // 🔧 FIX: asegurar siempre array
   function loadSavedOrder(){
     try {
-      state.savedOrder = JSON.parse(localStorage.getItem(storageKey())) || [];
+      const raw = localStorage.getItem(storageKey());
+      const parsed = raw ? JSON.parse(raw) : [];
+      state.savedOrder = Array.isArray(parsed) ? parsed : [];
     } catch(e) {
       state.savedOrder = [];
     }
@@ -411,7 +393,9 @@
   function saveOrder(){
     if (READONLY) return;
     try {
-      localStorage.setItem(storageKey(), JSON.stringify(state.savedOrder));
+      localStorage.setItem(storageKey(), JSON.stringify(
+        Array.isArray(state.savedOrder) ? state.savedOrder : []
+      ));
     } catch(e){}
   }
 
@@ -441,18 +425,18 @@
     return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
   }
 
-  // ---------- skeleton ----------
   function renderSkeleton(){
     const n = 9;
     $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
   }
 
-  // ---------- filters helpers ----------
   function passPlatform(it){ return !state.selectedPlatform || it.platform === state.selectedPlatform; }
   function passStatus(it){ return !state.selectedStatus || it.status === state.selectedStatus; }
-  function passFilters(it){ return passPlatform(it) && passStatus(it); }
 
-  // ---------- menus ----------
+  function passFilters(it){
+    return passPlatform(it) && passStatus(it);
+  }
+
   function closeDD(){
     $ddPlatforms.classList.remove("open");
     $ddStatus.classList.remove("open");
@@ -538,10 +522,11 @@
     $countStatus.textContent = state.selectedStatus ? `(${filtered.length})` : "";
   }
 
-  // ---------- grid ----------
+  // 🔧 FIX: usar siempre array para savedOrder
   function sortWithSavedOrder(arr){
     const orderIndex = {};
-    (state.savedOrder || []).forEach((id,i) => { orderIndex[id] = i; });
+    const saved = Array.isArray(state.savedOrder) ? state.savedOrder : [];
+    saved.forEach((id,i) => { orderIndex[id] = i; });
 
     return arr.slice().sort((a,b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -557,8 +542,7 @@
   }
 
   function renderGrid(){
-    const base = Array.isArray(state.items) ? state.items : [];
-    const ordered = sortWithSavedOrder(base);
+    const ordered = sortWithSavedOrder(state.items);
     const items = ordered.filter(passFilters).slice(0, 12);
 
     if (items.length === 0){
@@ -602,7 +586,6 @@
       </article>`;
     }).join("");
 
-    // hover video
     Array.from($grid.querySelectorAll("video.card-video")).forEach(vid => {
       const card = vid.closest(".card");
       card.addEventListener("mouseenter", () => {
@@ -616,7 +599,6 @@
       });
     });
 
-    // click → modal
     Array.from($grid.querySelectorAll(".card")).forEach(card => {
       card.addEventListener("click", () => {
         if (card.classList.contains("dragging")) return;
@@ -667,7 +649,7 @@
         const moved = vis.splice(from, 1)[0];
         vis.splice(to, 0, moved);
 
-        const remaining = (state.savedOrder || []).filter(id => !visibleIds.includes(id));
+        const remaining = (Array.isArray(state.savedOrder) ? state.savedOrder : []).filter(id => !visibleIds.includes(id));
         state.savedOrder = vis.concat(remaining);
         saveOrder();
         renderGrid();
@@ -675,7 +657,6 @@
     });
   }
 
-  // ---------- modal ----------
   function renderModalAsset(){
     const idx = state.modalIndex;
     const a = state.modalAssets[idx];
@@ -754,7 +735,6 @@
     if (e.key === "ArrowRight") $btnNext.click();
   });
 
-  // ---------- bio ----------
   function renderBio(){
     const b = state.bio;
     if (!b){
@@ -793,7 +773,6 @@
     renderBio();
   }
 
-  // ---------- view toggles (solo UI) ----------
   function updateViewButtons(){
     $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
@@ -809,34 +788,14 @@
     updateViewButtons();
   };
 
-  // ---------- load data ----------
   async function load(){
-    // limpiar mensajes
-    if ($errorBox){
-      $errorBox.style.display = "none";
-      $errorBox.textContent = "";
-    }
-    if ($debugBox){
-      $debugBox.textContent = "";
-    }
-
     renderSkeleton();
 
     try {
-      console.log("Fetching /api/grid …");
       const res = await fetch("/api/grid");
-      const data = await res.json().catch(() => null);
-
-      console.log("Grid data:", data);
-
-      if (!data || !data.ok){
-        const msg = (data && data.error) ? data.error : "Error loading content from Notion.";
-        console.error("Grid error:", msg);
-        if ($errorBox){
-          $errorBox.textContent = msg;
-          $errorBox.style.display = "block";
-        }
-        $grid.innerHTML = "";
+      const data = await res.json();
+      if (!data.ok){
+        console.error("Grid error:", data.error);
         return;
       }
 
@@ -844,12 +803,9 @@
       loadSavedOrder();
       loadSavedFilters();
 
+      // 🔧 asegurar array
       state.items = Array.isArray(data.items) ? data.items : [];
       state.bio = data.bio || null;
-
-      if ($debugBox){
-        $debugBox.textContent = `Loaded ${state.items.length} posts`;
-      }
 
       state.showBio = (localStorage.getItem("showBio") || "true") === "true";
       setSwitch($switchBio, state.showBio);
@@ -861,15 +817,9 @@
       updateViewButtons();
     } catch (e){
       console.error("Load error:", e);
-      if ($errorBox){
-        $errorBox.textContent = e.message || "Unexpected error loading content.";
-        $errorBox.style.display = "block";
-      }
-      $grid.innerHTML = "";
     }
   }
 
-  // ---------- toolbar events ----------
   function handleRefresh(){
     state.selectedPlatform = null;
     state.selectedStatus = null;
@@ -925,7 +875,6 @@
   $rowBio.onclick = toggleBio;
   $switchBio.onclick = e => { e.stopPropagation(); toggleBio(); };
 
-  // go!
   load();
 </script>
 </body>
