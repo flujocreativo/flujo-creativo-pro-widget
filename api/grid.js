@@ -128,9 +128,6 @@ function normalizePost(page) {
     pinned: readCheckbox(props.Pinned),
     hide: readCheckbox(props.Hide),
 
-    // NEW: Post Type (Grid / Reel / Both)
-    postType: readSelect(props["Post Type"]) || null,
-
     assets,
     isVideo,
 
