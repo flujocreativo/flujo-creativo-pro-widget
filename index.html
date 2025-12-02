@@ -263,6 +263,19 @@
     </div>
   </div>
 
+  <!-- Caja de error visible cuando algo se rompe -->
+  <div id="errorBox" style="display:none;
+    max-width:800px;margin:0 auto 10px auto;
+    padding:10px 12px;border-radius:10px;
+    border:1px solid #fecaca;
+    background:#fef2f2;color:#b91c1c;
+    font-size:13px;line-height:1.4;">
+  </div>
+
+  <!-- Mini debug: cuántos posts cargó -->
+  <div id="debugBox" style="max-width:800px;margin:0 auto 8px auto;
+    font-size:12px;color:#6b7280;text-align:right;"></div>
+
   <div id="filtersRow" class="filters-row">
     <div class="dd" id="ddPlatforms">
       <button class="dd-toggle" id="togglePlatforms">
@@ -325,7 +338,7 @@
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    viewMode: "grid" // por ahora SOLO afecta los botones, no datos
+    viewMode: "grid" // por ahora solo UI
   };
 
   // DOM
@@ -371,6 +384,9 @@
 
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
+
+  const $errorBox = document.getElementById("errorBox");
+  const $debugBox = document.getElementById("debugBox");
 
   function escapeHtml(s){
     s = String(s || "");
@@ -434,11 +450,7 @@
   // ---------- filters helpers ----------
   function passPlatform(it){ return !state.selectedPlatform || it.platform === state.selectedPlatform; }
   function passStatus(it){ return !state.selectedStatus || it.status === state.selectedStatus; }
-
-  // POR AHORA: viewMode NO afecta filtros de datos
-  function passFilters(it){
-    return passPlatform(it) && passStatus(it);
-  }
+  function passFilters(it){ return passPlatform(it) && passStatus(it); }
 
   // ---------- menus ----------
   function closeDD(){
@@ -545,7 +557,8 @@
   }
 
   function renderGrid(){
-    const ordered = sortWithSavedOrder(state.items);
+    const base = Array.isArray(state.items) ? state.items : [];
+    const ordered = sortWithSavedOrder(base);
     const items = ordered.filter(passFilters).slice(0, 12);
 
     if (items.length === 0){
@@ -780,7 +793,7 @@
     renderBio();
   }
 
-  // ---------- view toggles (solo UI por ahora) ----------
+  // ---------- view toggles (solo UI) ----------
   function updateViewButtons(){
     $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
@@ -789,24 +802,41 @@
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     updateViewButtons();
-    // en esta fase, NO cambiamos filtros de datos
   };
 
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
     updateViewButtons();
-    // en esta fase, NO cambiamos filtros de datos
   };
 
   // ---------- load data ----------
   async function load(){
+    // limpiar mensajes
+    if ($errorBox){
+      $errorBox.style.display = "none";
+      $errorBox.textContent = "";
+    }
+    if ($debugBox){
+      $debugBox.textContent = "";
+    }
+
     renderSkeleton();
 
     try {
+      console.log("Fetching /api/grid …");
       const res = await fetch("/api/grid");
-      const data = await res.json();
-      if (!data.ok){
-        console.error("Grid error:", data.error);
+      const data = await res.json().catch(() => null);
+
+      console.log("Grid data:", data);
+
+      if (!data || !data.ok){
+        const msg = (data && data.error) ? data.error : "Error loading content from Notion.";
+        console.error("Grid error:", msg);
+        if ($errorBox){
+          $errorBox.textContent = msg;
+          $errorBox.style.display = "block";
+        }
+        $grid.innerHTML = "";
         return;
       }
 
@@ -814,8 +844,12 @@
       loadSavedOrder();
       loadSavedFilters();
 
-      state.items = data.items || [];
+      state.items = Array.isArray(data.items) ? data.items : [];
       state.bio = data.bio || null;
+
+      if ($debugBox){
+        $debugBox.textContent = `Loaded ${state.items.length} posts`;
+      }
 
       state.showBio = (localStorage.getItem("showBio") || "true") === "true";
       setSwitch($switchBio, state.showBio);
@@ -827,6 +861,11 @@
       updateViewButtons();
     } catch (e){
       console.error("Load error:", e);
+      if ($errorBox){
+        $errorBox.textContent = e.message || "Unexpected error loading content.";
+        $errorBox.style.display = "block";
+      }
+      $grid.innerHTML = "";
     }
   }
 
