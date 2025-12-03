@@ -154,6 +154,13 @@
     color:#aaa;font-size:14px;font-weight:500;
   }
 
+  /* Drag & drop visual */
+  .card.dragging{
+    outline:2px solid #fff;
+    outline-offset:-2px;
+    cursor:grabbing;
+  }
+
   /* Skeleton */
   .card.skel{background:#f3f4f6;cursor:default}
   .card.skel::before{
@@ -209,13 +216,16 @@
   .zone.prev{left:0}
   .zone.next{right:0}
 
-  /* Pager del carrusel en modal (dots + 2/7) */
+  /* Pager del carrusel en modal (dots + 2/7) tipo pill iOS */
   .modal-pager{
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:8px;
+    gap:10px;
     margin-top:8px;
+    padding:6px 14px;
+    border-radius:999px;
+    background:rgba(0,0,0,.55);
   }
 
   .modal-counter{
@@ -235,7 +245,7 @@
     border-radius:999px;
     background:rgba(255,255,255,.35);
     cursor:pointer;
-    transition:transform .15s ease, background .15s ease, opacity .15s ease;
+    transition:transform .15s ease, background .15s ease, opacity .15s ease, width .15s ease;
     opacity:.7;
   }
   .modal-dot.active{
@@ -243,6 +253,19 @@
     background:#fff;
     opacity:1;
     transform:translateY(-1px);
+  }
+
+  /* Load more / less row */
+  .pager-row{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin:10px 0 0;
+  }
+  .pager-row .btn{
+    font-size:12px;
+    padding:6px 10px;
+    border-radius:999px;
   }
 
   @media (hover:hover){
@@ -330,6 +353,12 @@
   </section>
 
   <section id="grid" class="grid" aria-live="polite"></section>
+
+  <!-- Load more / less -->
+  <div class="pager-row" id="pagerRow">
+    <button id="btnLess" class="btn" style="display:none;">Show less</button>
+    <button id="btnMore" class="btn" style="display:none;">Load more</button>
+  </div>
 </main>
 
 <div id="modal" class="modal" aria-hidden="true">
@@ -343,7 +372,7 @@
       <div id="zoneNext" class="zone next" aria-hidden="true"></div>
     </div>
 
-    <!-- Dots + contador tipo TikTok -->
+    <!-- Dots + contador tipo TikTok/iOS -->
     <div class="modal-pager">
       <div id="modalDots" class="modal-dots"></div>
       <div id="modalCounter" class="modal-counter"></div>
@@ -357,6 +386,8 @@
   const READONLY = new URLSearchParams(window.location.search).get("readonly") === "1";
   if (READONLY) document.body.classList.add("ro");
 
+  const BASE_LIMIT = 12;
+
   const state = {
     dbId: null,
     items: [],
@@ -367,7 +398,8 @@
     viewMode: "grid",
     modalAssets: [],
     modalIndex: 0,
-    modalCaption: ""
+    modalCaption: "",
+    visibleCount: BASE_LIMIT // para load more / less
   };
 
   // DOM refs
@@ -416,6 +448,9 @@
 
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
+
+  const $btnMore = document.getElementById("btnMore");
+  const $btnLess = document.getElementById("btnLess");
 
   function formatDate(dateStr){
     if(!dateStr) return "";
@@ -533,6 +568,7 @@
     Array.from($menuPlatforms.children).forEach(el => {
       el.onclick = () => {
         const val = el.getAttribute("data-v");
+        state.visibleCount = BASE_LIMIT;
         state.selectedPlatform = (val === "All Platforms") ? null : val;
         $labelPlatforms.textContent = val;
         renderGrid();
@@ -558,6 +594,7 @@
     Array.from($menuStatus.children).forEach(el => {
       el.onclick = () => {
         const val = el.getAttribute("data-v");
+        state.visibleCount = BASE_LIMIT;
         state.selectedStatus = (val === "All Status") ? null : val;
         $labelStatus.textContent = val;
         renderGrid();
@@ -578,9 +615,9 @@
     $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
-  function renderGrid(){
-    const LIMIT = 12;
+  let dragSourceItem = null;
 
+  function renderGrid(){
     const allFiltered = (state.items || [])
       .slice()
       .sort((a,b) => {
@@ -591,18 +628,24 @@
       })
       .filter(passFilters);
 
+    const total = allFiltered.length;
+
     const emptyMsg = state.viewMode === "reels"
       ? "No reels with video yet"
       : "No content";
 
-    if (!allFiltered.length){
-      $grid.innerHTML = Array.from({length:LIMIT})
+    if (!total){
+      $grid.innerHTML = Array.from({length:BASE_LIMIT})
         .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
         .join("");
+      $btnMore.style.display = "none";
+      $btnLess.style.display = "none";
       return;
     }
 
-    const items = allFiltered.slice(0, LIMIT);
+    // visibleCount no puede pasar de total
+    const visible = Math.min(state.visibleCount || BASE_LIMIT, total);
+    const items = allFiltered.slice(0, visible);
 
     const realCardsHtml = items.map((it, idx) => {
       const badges = [];
@@ -642,13 +685,26 @@
       </article>`;
     }).join("");
 
-    const placeholdersNeeded = Math.max(0, LIMIT - items.length);
+    const placeholdersNeeded = total < BASE_LIMIT
+      ? Math.max(0, BASE_LIMIT - items.length)
+      : 0;
+
     const placeholdersHtml = Array.from({length:placeholdersNeeded})
       .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
       .join("");
 
     $grid.innerHTML = realCardsHtml + placeholdersHtml;
 
+    // Mostrar / ocultar botones de paginación
+    if (total <= BASE_LIMIT){
+      $btnMore.style.display = "none";
+      $btnLess.style.display = "none";
+    } else {
+      $btnMore.style.display = (state.visibleCount >= total) ? "none" : "inline-flex";
+      $btnLess.style.display = (state.visibleCount > BASE_LIMIT) ? "inline-flex" : "none";
+    }
+
+    // hover + click + drag & drop
     const cards = Array.from($grid.querySelectorAll('.card[data-type="real"]'));
     cards.forEach(card => {
       const idx = parseInt(card.getAttribute("data-idx"), 10);
@@ -664,7 +720,40 @@
         });
       }
 
+      // drag & drop
+      card.setAttribute("draggable","true");
+
+      card.addEventListener("dragstart", () => {
+        dragSourceItem = item;
+        card.classList.add("dragging");
+      });
+
+      card.addEventListener("dragend", () => {
+        dragSourceItem = null;
+        card.classList.remove("dragging");
+      });
+
+      card.addEventListener("dragover", e => {
+        e.preventDefault();
+      });
+
+      card.addEventListener("drop", e => {
+        e.preventDefault();
+        if (!dragSourceItem || dragSourceItem === item) return;
+
+        const fromIndex = state.items.indexOf(dragSourceItem);
+        const toIndex = state.items.indexOf(item);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const arr = state.items.slice();
+        const [moved] = arr.splice(fromIndex,1);
+        arr.splice(toIndex,0,moved);
+        state.items = arr;
+        renderGrid();
+      });
+
       card.addEventListener("click", () => {
+        if (card.classList.contains("dragging")) return;
         openModal(item);
       });
     });
@@ -679,13 +768,13 @@
     }
 
     if (!total || total === 1){
-      $modalDots.style.display = "none";
-      if ($modalCounter) $modalCounter.style.display = "none";
+      $modalDots.style.visibility = "hidden";
+      if ($modalCounter) $modalCounter.style.visibility = "hidden";
       return;
     }
 
-    $modalDots.style.display = "flex";
-    if ($modalCounter) $modalCounter.style.display = "block";
+    $modalDots.style.visibility = "visible";
+    if ($modalCounter) $modalCounter.style.visibility = "visible";
 
     const frag = document.createDocumentFragment();
 
@@ -850,18 +939,33 @@
 
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
+    state.visibleCount = BASE_LIMIT;
     updateViewButtons();
     renderGrid();
   };
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
+    state.visibleCount = BASE_LIMIT;
     updateViewButtons();
+    renderGrid();
+  };
+
+  // Load more / less
+  $btnMore.onclick = () => {
+    const totalFiltered = (state.items || []).filter(passFilters).length;
+    state.visibleCount = Math.min(totalFiltered, (state.visibleCount || BASE_LIMIT) + 6);
+    renderGrid();
+  };
+
+  $btnLess.onclick = () => {
+    state.visibleCount = BASE_LIMIT;
     renderGrid();
   };
 
   function handleRefresh(){
     state.selectedPlatform = null;
     state.selectedStatus = null;
+    state.visibleCount = BASE_LIMIT;
     $labelPlatforms.textContent = "All Platforms";
     $labelStatus.textContent = "All Status";
     closeDD();
@@ -921,6 +1025,8 @@
       if (!data || !data.ok){
         console.error("Grid error:", data && data.error);
         $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
+        $btnMore.style.display = "none";
+        $btnLess.style.display = "none";
         return;
       }
       state.dbId = data.dbId || null;
@@ -935,12 +1041,15 @@
       setSwitch($switchBio, state.showBio);
       renderBio();
       renderMenus();
+      state.visibleCount = BASE_LIMIT;
       renderGrid();
       updateCounts();
       updateViewButtons();
     }catch(e){
       console.error("Load error:", e);
       $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
+      $btnMore.style.display = "none";
+      $btnLess.style.display = "none";
     }
   }
 
