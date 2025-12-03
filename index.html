@@ -35,6 +35,7 @@
     font-size:16px;
   }
 
+  /* view toggles (solo UI) */
   .view-toggle{
     transition:background .15s,border-color .15s,color .15s, box-shadow .15s;
   }
@@ -114,11 +115,9 @@
     display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0;
   }
   .card{
-    position:relative;background:#f5f5f5;cursor:grab;overflow:hidden;
+    position:relative;background:#f5f5f5;cursor:pointer;overflow:hidden;
     aspect-ratio:4/5;transition:opacity .2s,transform .2s;
   }
-  .card.dragging{opacity:.5;cursor:grabbing;transform:scale(1.05);z-index:100}
-  .card.drag-over{outline:1px solid #e5e7eb}
   .card-img,.card-video{
     width:100%;height:100%;object-fit:cover;display:block;
   }
@@ -153,6 +152,7 @@
     color:#aaa;font-size:14px;font-weight:500;
   }
 
+  /* Skeleton */
   .card.skel{background:#f3f4f6;cursor:default}
   .card.skel::before{
     content:"";position:absolute;inset:0;
@@ -219,6 +219,7 @@
     .nav-btn{opacity:1}
   }
 
+  /* Readonly */
   .ro .menu { display:none; }
 </style>
 </head>
@@ -238,6 +239,7 @@
       <i class="fa-solid fa-sliders"></i>
     </button>
 
+    <!-- View toggles (visuales) -->
     <button id="btnViewGrid" class="btn-icon view-toggle active" title="Grid view">
       <i class="fa-solid fa-table-cells-large"></i>
     </button>
@@ -315,15 +317,15 @@
     items: [],
     selectedPlatform: null,
     selectedStatus: null,
-    savedOrder: [],
     bio: null,
     showBio: true,
+    viewMode: "grid",
     modalAssets: [],
     modalIndex: 0,
-    modalCaption: "",
-    viewMode: "grid"
+    modalCaption: ""
   };
 
+  // DOM refs
   const $grid = document.getElementById("grid");
   const $btnRefresh = document.getElementById("btnRefresh");
   const $btnFilter = document.getElementById("btnFilter");
@@ -367,57 +369,6 @@
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
 
-  function escapeHtml(s){
-    s = String(s || "");
-    return s
-      .replace(/&/g,"&amp;")
-      .replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;")
-      .replace(/'/g,"&#039;");
-  }
-
-  function storageKey(){ return state.dbId ? `order-${state.dbId}` : "order-default"; }
-  function filtersKey(){ return state.dbId ? `filters-${state.dbId}` : "filters-default"; }
-
-  // 🔧 FIX: asegurar siempre array
-  function loadSavedOrder(){
-    try {
-      const raw = localStorage.getItem(storageKey());
-      const parsed = raw ? JSON.parse(raw) : [];
-      state.savedOrder = Array.isArray(parsed) ? parsed : [];
-    } catch(e) {
-      state.savedOrder = [];
-    }
-  }
-  function saveOrder(){
-    if (READONLY) return;
-    try {
-      localStorage.setItem(storageKey(), JSON.stringify(
-        Array.isArray(state.savedOrder) ? state.savedOrder : []
-      ));
-    } catch(e){}
-  }
-
-  function loadSavedFilters(){
-    try{
-      const f = JSON.parse(localStorage.getItem(filtersKey())) || {};
-      state.selectedPlatform = (f.platform !== undefined) ? f.platform : null;
-      state.selectedStatus   = (f.status   !== undefined) ? f.status   : null;
-    }catch(e){}
-  }
-  function saveFilters(){
-    if (READONLY) return;
-    try{
-      localStorage.setItem(filtersKey(), JSON.stringify({
-        platform: state.selectedPlatform,
-        status: state.selectedStatus
-      }));
-    }catch(e){}
-  }
-
-  function setSwitch(el,on){ el.classList.toggle("on",!!on); el.setAttribute("aria-checked",!!on); }
-
   function formatDate(dateStr){
     if(!dateStr) return "";
     const d = new Date(dateStr);
@@ -425,16 +376,58 @@
     return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
   }
 
+  function setSwitch(el,on){
+    el.classList.toggle("on", !!on);
+    el.setAttribute("aria-checked", !!on);
+  }
+
   function renderSkeleton(){
     const n = 9;
     $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
   }
 
-  function passPlatform(it){ return !state.selectedPlatform || it.platform === state.selectedPlatform; }
-  function passStatus(it){ return !state.selectedStatus || it.status === state.selectedStatus; }
-
+  function passPlatform(it){
+    return !state.selectedPlatform || it.platform === state.selectedPlatform;
+  }
+  function passStatus(it){
+    return !state.selectedStatus || it.status === state.selectedStatus;
+  }
   function passFilters(it){
     return passPlatform(it) && passStatus(it);
+  }
+
+  function renderBio(){
+    const b = state.bio;
+    if (!b || !state.showBio){
+      $bio.classList.remove("visible");
+      $bio.setAttribute("aria-hidden","true");
+      return;
+    }
+    $bioUsername.textContent = b.username || "";
+    $bioName.textContent = b.name || "";
+    $bioLines.textContent = (b.textLines || []).join("\n");
+    const cleanUrl = (b.url || "").replace(/^https?:\/\//,"");
+    $bioUrl.textContent = cleanUrl || "";
+    $bioUrl.href = b.url || "#";
+
+    if (b.avatar){
+      $bioAvatar.src = b.avatar;
+      $bioAvatar.style.display = "block";
+    } else {
+      $bioAvatar.style.display = "none";
+    }
+
+    $bio.classList.add("visible");
+    $bio.setAttribute("aria-hidden","false");
+  }
+
+  function toggleBio(){
+    state.showBio = !state.showBio;
+    try{
+      localStorage.setItem("showBio", String(state.showBio));
+    }catch(e){}
+    setSwitch($switchBio, state.showBio);
+    renderBio();
   }
 
   function closeDD(){
@@ -443,31 +436,39 @@
   }
 
   function renderMenus(){
-    const Pset = new Map(), Sset = new Map();
+    const items = state.items || [];
 
-    state.items.forEach(it => {
-      if (it.platform) Pset.set(it.platform, (Pset.get(it.platform)||0)+1);
-      if (it.status)   Sset.set(it.status,   (Sset.get(it.status)||0)+1);
+    const platCounts = {};
+    const statusCounts = {};
+
+    items.forEach(it => {
+      if (it.platform){
+        platCounts[it.platform] = (platCounts[it.platform] || 0) + 1;
+      }
+      if (it.status){
+        statusCounts[it.status] = (statusCounts[it.status] || 0) + 1;
+      }
     });
 
-    const allP = state.items.filter(passStatus);
-    const allS = state.items.filter(passPlatform);
+    const platforms = Object.keys(platCounts).sort((a,b) => platCounts[b]-platCounts[a]);
+    const statuses  = Object.keys(statusCounts).sort((a,b) => statusCounts[b]-statusCounts[a]);
 
-    const platforms = Array.from(Pset.keys());
-    platforms.sort((a,b) => (Pset.get(b)||0)-(Pset.get(a)||0));
-    const statuses = Array.from(Sset.keys());
-    statuses.sort((a,b) => (Sset.get(b)||0)-(Sset.get(a)||0));
+    const filteredByStatus = items.filter(passStatus);
+    const filteredByPlatform = items.filter(passPlatform);
 
-    const Pmenu = ["All Platforms", ...platforms];
-    const countByPlatform = {};
-    allP.forEach(it => { countByPlatform[it.platform] = (countByPlatform[it.platform)||0)+1; });
+    const allPlatCount = filteredByStatus.length;
+    const allStatusCount = filteredByPlatform.length;
 
-    $menuPlatforms.innerHTML = Pmenu.map(name => {
-      const count = name === "All Platforms" ? allP.length : (countByPlatform[name]||0);
-      const active = (name==="All Platforms" && !state.selectedPlatform) || state.selectedPlatform===name;
+    // Platforms menu
+    const platMenuItems = ["All Platforms", ...platforms];
+    $menuPlatforms.innerHTML = platMenuItems.map(name => {
+      const count = name === "All Platforms"
+        ? allPlatCount
+        : (platCounts[name] || 0);
+      const active = (name === "All Platforms" && !state.selectedPlatform) || state.selectedPlatform === name;
       return `<div class="dd-item ${active?"active":""}" data-v="${name}">
         <div class="radio"></div>
-        <div class="label">${escapeHtml(name)}</div>
+        <div class="label">${name}</div>
         <div class="count">(${count})</div>
       </div>`;
     }).join("");
@@ -475,26 +476,25 @@
     Array.from($menuPlatforms.children).forEach(el => {
       el.onclick = () => {
         const val = el.getAttribute("data-v");
-        state.selectedPlatform = val === "All Platforms" ? null : val;
+        state.selectedPlatform = (val === "All Platforms") ? null : val;
         $labelPlatforms.textContent = val;
-        saveFilters();
-        closeDD();
         renderGrid();
         renderMenus();
         updateCounts();
+        closeDD();
       };
     });
 
-    const Smenu = ["All Status", ...statuses];
-    const countByStatus = {};
-    allS.forEach(it => { countByStatus[it.status] = (countByStatus[it.status)||0)+1; });
-
-    $menuStatus.innerHTML = Smenu.map(name => {
-      const count = name === "All Status" ? allS.length : (countByStatus[name]||0);
-      const active = (name==="All Status" && !state.selectedStatus) || state.selectedStatus===name;
+    // Status menu
+    const statusMenuItems = ["All Status", ...statuses];
+    $menuStatus.innerHTML = statusMenuItems.map(name => {
+      const count = name === "All Status"
+        ? allStatusCount
+        : (statusCounts[name] || 0);
+      const active = (name === "All Status" && !state.selectedStatus) || state.selectedStatus === name;
       return `<div class="dd-item ${active?"active":""}" data-v="${name}">
         <div class="radio"></div>
-        <div class="label">${escapeHtml(name)}</div>
+        <div class="label">${name}</div>
         <div class="count">(${count})</div>
       </div>`;
     }).join("");
@@ -502,13 +502,12 @@
     Array.from($menuStatus.children).forEach(el => {
       el.onclick = () => {
         const val = el.getAttribute("data-v");
-        state.selectedStatus = val === "All Status" ? null : val;
+        state.selectedStatus = (val === "All Status") ? null : val;
         $labelStatus.textContent = val;
-        saveFilters();
-        closeDD();
         renderGrid();
         renderMenus();
         updateCounts();
+        closeDD();
       };
     });
 
@@ -517,66 +516,49 @@
   }
 
   function updateCounts(){
-    const filtered = state.items.filter(passFilters);
-    $countPlatforms.textContent = state.selectedPlatform ? `(${filtered.length})` : "";
-    $countStatus.textContent = state.selectedStatus ? `(${filtered.length})` : "";
-  }
-
-  // 🔧 FIX: usar siempre array para savedOrder
-  function sortWithSavedOrder(arr){
-    const orderIndex = {};
-    const saved = Array.isArray(state.savedOrder) ? state.savedOrder : [];
-    saved.forEach((id,i) => { orderIndex[id] = i; });
-
-    return arr.slice().sort((a,b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-
-      const ai = orderIndex[a.id] !== undefined ? orderIndex[a.id] : Infinity;
-      const bi = orderIndex[b.id] !== undefined ? orderIndex[b.id] : Infinity;
-      if (ai !== bi) return ai - bi;
-
-      const da = a.publishDate ? new Date(a.publishDate).getTime() : 0;
-      const db = b.publishDate ? new Date(b.publishDate).getTime() : 0;
-      return db - da;
-    });
+    const filtered = (state.items || []).filter(passFilters);
+    const count = filtered.length;
+    $countPlatforms.textContent = state.selectedPlatform ? `(${count})` : "";
+    $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
   function renderGrid(){
-    const ordered = sortWithSavedOrder(state.items);
-    const items = ordered.filter(passFilters).slice(0, 12);
+    const items = (state.items || []).slice().sort((a,b) => {
+      // pinned primero, luego fecha
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const da = a.publishDate ? new Date(a.publishDate).getTime() : 0;
+      const db = b.publishDate ? new Date(b.publishDate).getTime() : 0;
+      return db - da;
+    }).filter(passFilters).slice(0,12);
 
-    if (items.length === 0){
-      $grid.innerHTML = Array.from({length:9}).map(() => '<div class="card card-placeholder">No Content</div>').join("");
+    if (!items.length){
+      $grid.innerHTML = Array.from({length:9}).map(() => '<div class="card card-placeholder">No content</div>').join("");
       return;
     }
 
-    $grid.innerHTML = items.map((it, index) => {
+    const html = items.map((it, idx) => {
       const badges = [];
       if (it.isVideo) badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
       if (it.pinned)  badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
 
-      let media = "";
       const first = (it.assets && it.assets[0]) || null;
+      let media = "";
 
       if (first){
         if (first.type === "video"){
           media = `<video class="card-video" data-src="${first.url}" muted loop playsinline preload="none"></video>`;
         } else {
-          media = `<img class="card-img" src="${first.url}" alt="${escapeHtml(it.title || "")}" loading="lazy" decoding="async" />`;
+          media = `<img class="card-img" src="${first.url}" alt="${(it.title || "").replace(/"/g,"&quot;")}" loading="lazy" decoding="async" />`;
         }
       } else {
         media = '<div class="card-placeholder">No Content</div>';
       }
 
       const titleHtml = it.title
-        ? `<div class="card-title">${escapeHtml(it.title)}</div>`
+        ? `<div class="card-title">${it.title}</div>`
         : '<div class="card-title"></div>';
 
-      const draggable = READONLY ? "false" : "true";
-
-      const safeItem = JSON.stringify(it).replace(/'/g,"&apos;");
-
-      return `<article class="card" draggable="${draggable}" data-index="${index}" data-id="${it.id}" data-item='${safeItem}'>
+      return `<article class="card" data-idx="${idx}">
         <div class="badge">${badges.join("")}</div>
         ${media}
         <div class="card-overlay">
@@ -586,73 +568,27 @@
       </article>`;
     }).join("");
 
-    Array.from($grid.querySelectorAll("video.card-video")).forEach(vid => {
-      const card = vid.closest(".card");
-      card.addEventListener("mouseenter", () => {
-        if (card.classList.contains("dragging")) return;
-        if (!vid.src) vid.src = vid.getAttribute("data-src");
-        vid.play().catch(() => {});
-      });
-      card.addEventListener("mouseleave", () => {
-        vid.pause();
-        try { vid.currentTime = 0; } catch(e){}
-      });
-    });
+    $grid.innerHTML = html;
 
-    Array.from($grid.querySelectorAll(".card")).forEach(card => {
-      card.addEventListener("click", () => {
-        if (card.classList.contains("dragging")) return;
-        const raw = card.getAttribute("data-item").replace(/&apos;/g,"'");
-        const item = JSON.parse(raw);
-        openModal(item);
-      });
-    });
-
-    if (!READONLY){
-      enableDnD(items.map(i => i.id));
-    }
-  }
-
-  function enableDnD(visibleIds){
-    let dragged = null;
-    let startIdx = null;
-
+    // hover video
     const cards = Array.from($grid.querySelectorAll(".card"));
-
     cards.forEach(card => {
-      card.addEventListener("dragstart", e => {
-        dragged = card;
-        startIdx = parseInt(card.getAttribute("data-index"), 10);
-        card.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-      });
-      card.addEventListener("dragend", () => {
-        card.classList.remove("dragging");
-        cards.forEach(c => c.classList.remove("drag-over"));
-      });
-      card.addEventListener("dragover", e => {
-        e.preventDefault();
-        if (dragged !== card) card.classList.add("drag-over");
-      });
-      card.addEventListener("dragleave", () => {
-        card.classList.remove("drag-over");
-      });
-      card.addEventListener("drop", e => {
-        e.preventDefault();
-        card.classList.remove("drag-over");
-        if (dragged === card) return;
+      const idx = parseInt(card.getAttribute("data-idx"), 10);
+      const item = items[idx];
+      const vid = card.querySelector("video.card-video");
+      if (vid){
+        card.addEventListener("mouseenter", () => {
+          if (!vid.src) vid.src = vid.getAttribute("data-src");
+          vid.play().catch(()=>{});
+        });
+        card.addEventListener("mouseleave", () => {
+          vid.pause();
+          try { vid.currentTime = 0; } catch(e){}
+        });
+      }
 
-        const from = startIdx;
-        const to = parseInt(card.getAttribute("data-index"), 10);
-
-        const vis = visibleIds.slice();
-        const moved = vis.splice(from, 1)[0];
-        vis.splice(to, 0, moved);
-
-        const remaining = (Array.isArray(state.savedOrder) ? state.savedOrder : []).filter(id => !visibleIds.includes(id));
-        state.savedOrder = vis.concat(remaining);
-        saveOrder();
-        renderGrid();
+      card.addEventListener("click", () => {
+        openModal(item);
       });
     });
   }
@@ -686,16 +622,11 @@
   }
 
   function openModal(item){
-    const assets = (item.assets && item.assets.length)
-      ? item.assets.slice()
-      : [];
-
+    const assets = (item.assets && item.assets.length) ? item.assets.slice() : [];
     state.modalAssets = assets;
     state.modalIndex = 0;
     state.modalCaption = item.caption || "";
-
     renderModalAsset();
-
     $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
   }
@@ -724,7 +655,6 @@
   };
   $zonePrev.onclick = $btnPrev.onclick;
   $zoneNext.onclick = $btnNext.onclick;
-
   $modal.onclick = e => { if (e.target === $modal) closeModalFn(); };
   $modalClose.onclick = closeModalFn;
 
@@ -735,44 +665,6 @@
     if (e.key === "ArrowRight") $btnNext.click();
   });
 
-  function renderBio(){
-    const b = state.bio;
-    if (!b){
-      $bio.classList.remove("visible");
-      $bio.setAttribute("aria-hidden","true");
-      return;
-    }
-
-    $bioUsername.textContent = b.username || "";
-    $bioName.textContent = b.name || "";
-    $bioLines.textContent = (b.textLines || []).join("\n");
-    const cleanUrl = (b.url || "").replace(/^https?:\/\//,"");
-    $bioUrl.textContent = cleanUrl || "";
-    $bioUrl.href = b.url || "#";
-
-    if (b.avatar){
-      $bioAvatar.src = b.avatar;
-      $bioAvatar.style.display = "block";
-    } else {
-      $bioAvatar.style.display = "none";
-    }
-
-    if (state.showBio){
-      $bio.classList.add("visible");
-      $bio.setAttribute("aria-hidden","false");
-    } else {
-      $bio.classList.remove("visible");
-      $bio.setAttribute("aria-hidden","true");
-    }
-  }
-
-  function toggleBio(){
-    state.showBio = !state.showBio;
-    localStorage.setItem("showBio", String(state.showBio));
-    setSwitch($switchBio, state.showBio);
-    renderBio();
-  }
-
   function updateViewButtons(){
     $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
@@ -781,49 +673,16 @@
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     updateViewButtons();
+    // en esta versión no cambia los datos, solo el estado visual
   };
-
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
     updateViewButtons();
   };
 
-  async function load(){
-    renderSkeleton();
-
-    try {
-      const res = await fetch("/api/grid");
-      const data = await res.json();
-      if (!data.ok){
-        console.error("Grid error:", data.error);
-        return;
-      }
-
-      state.dbId = data.dbId || null;
-      loadSavedOrder();
-      loadSavedFilters();
-
-      // 🔧 asegurar array
-      state.items = Array.isArray(data.items) ? data.items : [];
-      state.bio = data.bio || null;
-
-      state.showBio = (localStorage.getItem("showBio") || "true") === "true";
-      setSwitch($switchBio, state.showBio);
-
-      renderBio();
-      renderMenus();
-      renderGrid();
-      updateCounts();
-      updateViewButtons();
-    } catch (e){
-      console.error("Load error:", e);
-    }
-  }
-
   function handleRefresh(){
     state.selectedPlatform = null;
     state.selectedStatus = null;
-    saveFilters();
     $labelPlatforms.textContent = "All Platforms";
     $labelStatus.textContent = "All Status";
     closeDD();
@@ -832,7 +691,7 @@
 
   $btnRefresh.onclick = handleRefresh;
   if ($aiRefresh){
-    $aiRefresh.addEventListener("click", e => {
+    $aiRefresh.addEventListener("click", function(e){
       e.stopPropagation();
       handleRefresh();
     });
@@ -874,6 +733,37 @@
 
   $rowBio.onclick = toggleBio;
   $switchBio.onclick = e => { e.stopPropagation(); toggleBio(); };
+
+  async function load(){
+    renderSkeleton();
+    try{
+      const res = await fetch("/api/grid");
+      const data = await res.json();
+      if (!data || !data.ok){
+        console.error("Grid error:", data && data.error);
+        $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
+        return;
+      }
+      state.dbId = data.dbId || null;
+      state.items = data.items || [];
+      state.bio = data.bio || null;
+
+      try{
+        state.showBio = (localStorage.getItem("showBio") || "true") === "true";
+      }catch(e){
+        state.showBio = true;
+      }
+      setSwitch($switchBio, state.showBio);
+      renderBio();
+      renderMenus();
+      renderGrid();
+      updateCounts();
+      updateViewButtons();
+    }catch(e){
+      console.error("Load error:", e);
+      $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
+    }
+  }
 
   load();
 </script>
