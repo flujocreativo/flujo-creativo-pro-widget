@@ -209,11 +209,24 @@
   .zone.prev{left:0}
   .zone.next{right:0}
 
-  /* Dots slider en modal */
+  /* Pager del carrusel en modal (dots + 2/7) */
+  .modal-pager{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-top:8px;
+  }
+
+  .modal-counter{
+    color:#fff;
+    font-size:12px;
+    opacity:.85;
+  }
+
   .modal-dots{
     display:flex;
     gap:6px;
-    margin-top:8px;
     justify-content:center;
   }
   .modal-dot{
@@ -329,7 +342,13 @@
       <div id="zonePrev" class="zone prev" aria-hidden="true"></div>
       <div id="zoneNext" class="zone next" aria-hidden="true"></div>
     </div>
-    <div id="modalDots" class="modal-dots"></div>
+
+    <!-- Dots + contador tipo TikTok -->
+    <div class="modal-pager">
+      <div id="modalDots" class="modal-dots"></div>
+      <div id="modalCounter" class="modal-counter"></div>
+    </div>
+
     <div id="modalCaption" class="modal-caption"></div>
   </div>
 </div>
@@ -385,6 +404,7 @@
   const $mediaWrap = document.getElementById("mediaWrap");
   const $modalMedia = document.getElementById("modalMedia");
   const $modalDots = document.getElementById("modalDots");
+  const $modalCounter = document.getElementById("modalCounter");
   const $modalCaption = document.getElementById("modalCaption");
   const $modalClose = document.getElementById("modalClose");
   const $btnPrev = document.getElementById("btnPrev");
@@ -424,12 +444,10 @@
 
   // Filtro por viewMode
   function passViewMode(it){
-    // En "reels" solo mostramos posts que tienen video
     if (state.viewMode === "reels") {
-      return !!it.isVideo;
+      return !!it.isVideo; // solo posts con video
     }
-    // En "grid" mostramos todo
-    return true;
+    return true; // grid muestra todo
   }
 
   function passFilters(it){
@@ -499,7 +517,6 @@
     const allPlatCount = filteredByStatus.length;
     const allStatusCount = filteredByPlatform.length;
 
-    // Platforms menu
     const platMenuItems = ["All Platforms", ...platforms];
     $menuPlatforms.innerHTML = platMenuItems.map(name => {
       const count = name === "All Platforms"
@@ -525,7 +542,6 @@
       };
     });
 
-    // Status menu
     const statusMenuItems = ["All Status", ...statuses];
     $menuStatus.innerHTML = statusMenuItems.map(name => {
       const count = name === "All Status"
@@ -565,7 +581,6 @@
   function renderGrid(){
     const LIMIT = 12;
 
-    // Primero filtramos todos los items válidos
     const allFiltered = (state.items || [])
       .slice()
       .sort((a,b) => {
@@ -576,22 +591,20 @@
       })
       .filter(passFilters);
 
-    // Si no hay NINGÚN item para esta vista → 12 placeholders con mensaje
-    if (!allFiltered.length){
-      const emptyMsg = state.viewMode === "reels"
-        ? "No reels with video yet"
-        : "No content";
+    const emptyMsg = state.viewMode === "reels"
+      ? "No reels with video yet"
+      : "No content";
 
+    if (!allFiltered.length){
       $grid.innerHTML = Array.from({length:LIMIT})
         .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
         .join("");
       return;
     }
 
-    // Si sí hay items → mostramos hasta 12 ítems reales (sin placeholders)
     const items = allFiltered.slice(0, LIMIT);
 
-    const html = items.map((it, idx) => {
+    const realCardsHtml = items.map((it, idx) => {
       const badges = [];
       if (it.isVideo) badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
       if (it.pinned)  badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
@@ -619,7 +632,7 @@
         ? `<div class="card-title">${it.title}</div>`
         : '<div class="card-title"></div>';
 
-      return `<article class="card" data-idx="${idx}">
+      return `<article class="card" data-type="real" data-idx="${idx}">
         <div class="badge">${badges.join("")}</div>
         ${media}
         <div class="card-overlay">
@@ -629,14 +642,19 @@
       </article>`;
     }).join("");
 
-    $grid.innerHTML = html;
+    const placeholdersNeeded = Math.max(0, LIMIT - items.length);
+    const placeholdersHtml = Array.from({length:placeholdersNeeded})
+      .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
+      .join("");
 
-    // hover video
-    const cards = Array.from($grid.querySelectorAll(".card"));
+    $grid.innerHTML = realCardsHtml + placeholdersHtml;
+
+    const cards = Array.from($grid.querySelectorAll('.card[data-type="real"]'));
     cards.forEach(card => {
       const idx = parseInt(card.getAttribute("data-idx"), 10);
       const item = items[idx];
       const vid = card.querySelector("video.card-video");
+
       if (vid){
         card.addEventListener("mouseenter", () => {
           vid.play().catch(()=>{});
@@ -652,13 +670,22 @@
     });
   }
 
-  function renderModalDots(){
+  function renderModalDotsAndCounter(){
     const total = state.modalAssets.length;
+
     $modalDots.innerHTML = "";
+    if ($modalCounter){
+      $modalCounter.textContent = "";
+    }
 
     if (!total || total === 1){
-      return; // sin dots si solo hay 0 o 1 asset
+      $modalDots.style.display = "none";
+      if ($modalCounter) $modalCounter.style.display = "none";
+      return;
     }
+
+    $modalDots.style.display = "flex";
+    if ($modalCounter) $modalCounter.style.display = "block";
 
     const frag = document.createDocumentFragment();
 
@@ -674,6 +701,10 @@
     });
 
     $modalDots.appendChild(frag);
+
+    if ($modalCounter){
+      $modalCounter.textContent = `${state.modalIndex + 1}/${total}`;
+    }
   }
 
   function renderModalAsset(){
@@ -685,6 +716,7 @@
       $btnPrev.disabled = true;
       $btnNext.disabled = true;
       $modalDots.innerHTML = "";
+      if ($modalCounter) $modalCounter.textContent = "";
       return;
     }
 
@@ -709,7 +741,7 @@
     $btnPrev.disabled = idx <= 0;
     $btnNext.disabled = idx >= state.modalAssets.length - 1;
 
-    renderModalDots();
+    renderModalDotsAndCounter();
   }
 
   function openModal(item){
@@ -728,6 +760,7 @@
     $modalMedia.innerHTML = "";
     $modalCaption.textContent = "";
     $modalDots.innerHTML = "";
+    if ($modalCounter) $modalCounter.textContent = "";
     state.modalAssets = [];
     state.modalIndex = 0;
     state.modalCaption = "";
@@ -768,20 +801,17 @@
     }
     function onMove(e){
       if (!isTouching || startX == null) return;
-      // no necesitamos hacer nada durante el move por ahora
     }
     function onEnd(e){
       if (!isTouching || startX == null) return;
       const endX = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
       const diff = endX - startX;
-      const threshold = 40; // px
+      const threshold = 40;
 
       if (Math.abs(diff) > threshold){
         if (diff < 0){
-          // swipe left → siguiente
           $btnNext.click();
         } else {
-          // swipe right → anterior
           $btnPrev.click();
         }
       }
@@ -793,7 +823,6 @@
     $mediaWrap.addEventListener("touchmove", onMove, {passive:true});
     $mediaWrap.addEventListener("touchend", onEnd);
 
-    // opcionalmente también para mouse drag (desktop)
     let mouseDown = false;
     $mediaWrap.addEventListener("mousedown", e => {
       mouseDown = true;
@@ -819,7 +848,6 @@
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
   }
 
-  // cambiar vista + recargar grid
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     updateViewButtons();
