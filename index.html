@@ -543,9 +543,16 @@
       return db - da;
     }).filter(passFilters).slice(0,12);
 
-    if (!items.length){
-      $grid.innerHTML = Array.from({length:9}).map(() => '<div class="card card-placeholder">No content</div>').join("");
-      return;
+  if (!items.length){
+  const emptyMsg = state.viewMode === "reels"
+    ? "No reels with video yet"
+    : "No content";
+
+  $grid.innerHTML = Array.from({length:9})
+    .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
+    .join("");
+  return;
+}
     }
 
     const html = items.map((it, idx) => {
