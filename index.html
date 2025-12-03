@@ -394,7 +394,7 @@
     return !state.selectedStatus || it.status === state.selectedStatus;
   }
 
-  // NUEVO: filtro por viewMode
+  // Filtro por viewMode
   function passViewMode(it){
     // En "reels" solo mostramos posts que tienen video
     if (state.viewMode === "reels") {
@@ -558,7 +558,14 @@
 
       if (first){
         if (first.type === "video"){
-          media = `<video class="card-video" data-src="${first.url}" muted loop playsinline preload="none"></video>`;
+          /* CAMBIO: usar src directo y preload="metadata" para que pinte frame */
+          media = `<video
+            class="card-video"
+            src="${first.url}"
+            muted
+            loop
+            playsinline
+            preload="metadata"></video>`;
         } else {
           media = `<img class="card-img" src="${first.url}" alt="${(it.title || "").replace(/"/g,"&quot;")}" loading="lazy" decoding="async" />`;
         }
@@ -590,12 +597,11 @@
       const vid = card.querySelector("video.card-video");
       if (vid){
         card.addEventListener("mouseenter", () => {
-          if (!vid.src) vid.src = vid.getAttribute("data-src");
+          // CAMBIO: ya no seteamos src ni reseteamos currentTime
           vid.play().catch(()=>{});
         });
         card.addEventListener("mouseleave", () => {
           vid.pause();
-          try { vid.currentTime = 0; } catch(e){}
         });
       }
 
@@ -682,7 +688,7 @@
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
   }
 
-  // AHORA SÍ: cambiar vista + recargar grid
+  // cambiar vista + recargar grid
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     updateViewButtons();
