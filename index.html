@@ -381,10 +381,12 @@
     el.setAttribute("aria-checked", !!on);
   }
 
-  function renderSkeleton(){
-    const n = 9;
-    $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
-  }
+ function renderSkeleton(){
+  const n = 12;
+  $grid.innerHTML = Array.from({length:n})
+    .map(() => '<div class="card skel"></div>')
+    .join("");
+   }
 
   function passPlatform(it){
     return !state.selectedPlatform || it.platform === state.selectedPlatform;
