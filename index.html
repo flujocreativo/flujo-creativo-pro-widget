@@ -137,7 +137,9 @@
     position:absolute;bottom:0;left:0;right:0;
     background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
     padding:8px;display:flex;justify-content:space-between;align-items:flex-end;
-    color:#fff;opacity:0;transition:opacity .18s.ease;
+    color:#fff;
+    opacity:0;
+    transition: opacity .18s ease;
   }
   .card:hover .card-overlay{opacity:1}
   .card-title{
@@ -207,12 +209,35 @@
   .zone.prev{left:0}
   .zone.next{right:0}
 
+  /* Dots slider en modal */
+  .modal-dots{
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+    justify-content:center;
+  }
+  .modal-dot{
+    width:7px;
+    height:7px;
+    border-radius:999px;
+    background:rgba(255,255,255,.35);
+    cursor:pointer;
+    transition:transform .15s ease, background .15s ease, opacity .15s ease;
+    opacity:.7;
+  }
+  .modal-dot.active{
+    width:16px;
+    background:#fff;
+    opacity:1;
+    transform:translateY(-1px);
+  }
+
   @media (hover:hover){
     .nav-btn{opacity:0}
     .media-wrap:hover .nav-btn{opacity:.95}
   }
   @media (max-width:640px){
-    :root{ --ui-font:12px; --ui-pad-y:7px; --ui-pad-x:12px; --ui-radius:12px; }
+    :root{ --ui-font:12px; --ui-pad-y:7px; --ui-pad-x:10px; --ui-radius:12px; }
     .wrap{padding:12px}
     .bio-top{grid-template-columns:52px 1fr}
     .bio-avatar{width:52px;height:52px}
@@ -304,6 +329,7 @@
       <div id="zonePrev" class="zone prev" aria-hidden="true"></div>
       <div id="zoneNext" class="zone next" aria-hidden="true"></div>
     </div>
+    <div id="modalDots" class="modal-dots"></div>
     <div id="modalCaption" class="modal-caption"></div>
   </div>
 </div>
@@ -356,7 +382,9 @@
   const $bioAvatar = document.getElementById("bioAvatar");
 
   const $modal = document.getElementById("modal");
+  const $mediaWrap = document.getElementById("mediaWrap");
   const $modalMedia = document.getElementById("modalMedia");
+  const $modalDots = document.getElementById("modalDots");
   const $modalCaption = document.getElementById("modalCaption");
   const $modalClose = document.getElementById("modalClose");
   const $btnPrev = document.getElementById("btnPrev");
@@ -381,12 +409,10 @@
     el.setAttribute("aria-checked", !!on);
   }
 
- function renderSkeleton(){
-  const n = 12;
-  $grid.innerHTML = Array.from({length:n})
-    .map(() => '<div class="card skel"></div>')
-    .join("");
-   }
+  function renderSkeleton(){
+    const n = 9;
+    $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
+  }
 
   function passPlatform(it){
     return !state.selectedPlatform || it.platform === state.selectedPlatform;
@@ -537,24 +563,33 @@
   }
 
   function renderGrid(){
-    const items = (state.items || []).slice().sort((a,b) => {
-      // pinned primero, luego fecha
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      const da = a.publishDate ? new Date(a.publishDate).getTime() : 0;
-      const db = b.publishDate ? new Date(b.publishDate).getTime() : 0;
-      return db - da;
-    }).filter(passFilters).slice(0,12);
+    const LIMIT = 12;
 
-    if (!items.length){
+    // Primero filtramos todos los items válidos
+    const allFiltered = (state.items || [])
+      .slice()
+      .sort((a,b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        const da = a.publishDate ? new Date(a.publishDate).getTime() : 0;
+        const db = b.publishDate ? new Date(b.publishDate).getTime() : 0;
+        return db - da;
+      })
+      .filter(passFilters);
+
+    // Si no hay NINGÚN item para esta vista → 12 placeholders con mensaje
+    if (!allFiltered.length){
       const emptyMsg = state.viewMode === "reels"
         ? "No reels with video yet"
         : "No content";
 
-      $grid.innerHTML = Array.from({length:12})
+      $grid.innerHTML = Array.from({length:LIMIT})
         .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
         .join("");
       return;
     }
+
+    // Si sí hay items → mostramos hasta 12 ítems reales (sin placeholders)
+    const items = allFiltered.slice(0, LIMIT);
 
     const html = items.map((it, idx) => {
       const badges = [];
@@ -566,7 +601,6 @@
 
       if (first){
         if (first.type === "video"){
-          /* CAMBIO: usar src directo y preload="metadata" para que pinte frame */
           media = `<video
             class="card-video"
             src="${first.url}"
@@ -605,7 +639,6 @@
       const vid = card.querySelector("video.card-video");
       if (vid){
         card.addEventListener("mouseenter", () => {
-          // ya no seteamos src ni reseteamos currentTime
           vid.play().catch(()=>{});
         });
         card.addEventListener("mouseleave", () => {
@@ -619,11 +652,41 @@
     });
   }
 
+  function renderModalDots(){
+    const total = state.modalAssets.length;
+    $modalDots.innerHTML = "";
+
+    if (!total || total === 1){
+      return; // sin dots si solo hay 0 o 1 asset
+    }
+
+    const frag = document.createDocumentFragment();
+
+    state.modalAssets.forEach((_, i) => {
+      const dot = document.createElement("div");
+      dot.className = "modal-dot" + (i === state.modalIndex ? " active" : "");
+      dot.dataset.idx = String(i);
+      dot.addEventListener("click", () => {
+        state.modalIndex = i;
+        renderModalAsset();
+      });
+      frag.appendChild(dot);
+    });
+
+    $modalDots.appendChild(frag);
+  }
+
   function renderModalAsset(){
     const idx = state.modalIndex;
     const a = state.modalAssets[idx];
     $modalMedia.innerHTML = "";
-    if (!a) return;
+    if (!a) {
+      $modalCaption.textContent = "";
+      $btnPrev.disabled = true;
+      $btnNext.disabled = true;
+      $modalDots.innerHTML = "";
+      return;
+    }
 
     if (a.type === "video"){
       const v = document.createElement("video");
@@ -645,6 +708,8 @@
     $modalCaption.textContent = idx === 0 ? state.modalCaption : "";
     $btnPrev.disabled = idx <= 0;
     $btnNext.disabled = idx >= state.modalAssets.length - 1;
+
+    renderModalDots();
   }
 
   function openModal(item){
@@ -662,6 +727,7 @@
     $modal.setAttribute("aria-hidden","true");
     $modalMedia.innerHTML = "";
     $modalCaption.textContent = "";
+    $modalDots.innerHTML = "";
     state.modalAssets = [];
     state.modalIndex = 0;
     state.modalCaption = "";
@@ -690,6 +756,63 @@
     if (e.key === "ArrowLeft") $btnPrev.click();
     if (e.key === "ArrowRight") $btnNext.click();
   });
+
+  // Swipe en mobile (izq / der)
+  (function setupSwipe(){
+    let startX = null;
+    let isTouching = false;
+
+    function onStart(e){
+      isTouching = true;
+      startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    }
+    function onMove(e){
+      if (!isTouching || startX == null) return;
+      // no necesitamos hacer nada durante el move por ahora
+    }
+    function onEnd(e){
+      if (!isTouching || startX == null) return;
+      const endX = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
+      const diff = endX - startX;
+      const threshold = 40; // px
+
+      if (Math.abs(diff) > threshold){
+        if (diff < 0){
+          // swipe left → siguiente
+          $btnNext.click();
+        } else {
+          // swipe right → anterior
+          $btnPrev.click();
+        }
+      }
+      isTouching = false;
+      startX = null;
+    }
+
+    $mediaWrap.addEventListener("touchstart", onStart, {passive:true});
+    $mediaWrap.addEventListener("touchmove", onMove, {passive:true});
+    $mediaWrap.addEventListener("touchend", onEnd);
+
+    // opcionalmente también para mouse drag (desktop)
+    let mouseDown = false;
+    $mediaWrap.addEventListener("mousedown", e => {
+      mouseDown = true;
+      onStart(e);
+    });
+    $mediaWrap.addEventListener("mousemove", e => {
+      if (!mouseDown) return;
+      onMove(e);
+    });
+    $mediaWrap.addEventListener("mouseup", e => {
+      if (!mouseDown) return;
+      mouseDown = false;
+      onEnd(e);
+    });
+    $mediaWrap.addEventListener("mouseleave", () => {
+      mouseDown = false;
+      startX = null;
+    });
+  })();
 
   function updateViewButtons(){
     $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
