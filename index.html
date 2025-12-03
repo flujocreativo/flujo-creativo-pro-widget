@@ -137,7 +137,7 @@
     position:absolute;bottom:0;left:0;right:0;
     background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
     padding:8px;display:flex;justify-content:space-between;align-items:flex-end;
-    color:#fff;opacity:0;transition:opacity .18s ease;
+    color:#fff;opacity:0;transition:opacity .18s.ease;
   }
   .card:hover .card-overlay{opacity:1}
   .card-title{
@@ -212,7 +212,7 @@
     .media-wrap:hover .nav-btn{opacity:.95}
   }
   @media (max-width:640px){
-    :root{ --ui-font:12px; --ui-pad-y:7px; --ui-pad-x:10px; --ui-radius:12px; }
+    :root{ --ui-font:12px; --ui-pad-y:7px; --ui-pad-x:12px; --ui-radius:12px; }
     .wrap{padding:12px}
     .bio-top{grid-template-columns:52px 1fr}
     .bio-avatar{width:52px;height:52px}
@@ -543,16 +543,15 @@
       return db - da;
     }).filter(passFilters).slice(0,12);
 
-  if (!items.length){
-  const emptyMsg = state.viewMode === "reels"
-    ? "No reels with video yet"
-    : "No content";
+    if (!items.length){
+      const emptyMsg = state.viewMode === "reels"
+        ? "No reels with video yet"
+        : "No content";
 
-  $grid.innerHTML = Array.from({length:9})
-    .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
-    .join("");
-  return;
-}
+      $grid.innerHTML = Array.from({length:12})
+        .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
+        .join("");
+      return;
     }
 
     const html = items.map((it, idx) => {
@@ -604,7 +603,7 @@
       const vid = card.querySelector("video.card-video");
       if (vid){
         card.addEventListener("mouseenter", () => {
-          // CAMBIO: ya no seteamos src ni reseteamos currentTime
+          // ya no seteamos src ni reseteamos currentTime
           vid.play().catch(()=>{});
         });
         card.addEventListener("mouseleave", () => {
