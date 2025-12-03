@@ -373,7 +373,7 @@
     </div>
 
     <!-- Dots + contador tipo TikTok/iOS -->
-    <div class="modal-pager">
+    <div id="modalPager" class="modal-pager">
       <div id="modalDots" class="modal-dots"></div>
       <div id="modalCounter" class="modal-counter"></div>
     </div>
@@ -435,6 +435,7 @@
   const $modal = document.getElementById("modal");
   const $mediaWrap = document.getElementById("mediaWrap");
   const $modalMedia = document.getElementById("modalMedia");
+  const $modalPager = document.getElementById("modalPager");
   const $modalDots = document.getElementById("modalDots");
   const $modalCounter = document.getElementById("modalCounter");
   const $modalCaption = document.getElementById("modalCaption");
@@ -767,14 +768,18 @@
       $modalCounter.textContent = "";
     }
 
-    if (!total || total === 1){
-      $modalDots.style.visibility = "hidden";
-      if ($modalCounter) $modalCounter.style.visibility = "hidden";
+    if (!$modalPager){
       return;
     }
 
-    $modalDots.style.visibility = "visible";
-    if ($modalCounter) $modalCounter.style.visibility = "visible";
+    // 0 o 1 asset → ocultar TODO el pill
+    if (!total || total === 1){
+      $modalPager.style.display = "none";
+      return;
+    }
+
+    // 2+ assets → mostrar pill
+    $modalPager.style.display = "flex";
 
     const frag = document.createDocumentFragment();
 
@@ -806,6 +811,7 @@
       $btnNext.disabled = true;
       $modalDots.innerHTML = "";
       if ($modalCounter) $modalCounter.textContent = "";
+      if ($modalPager) $modalPager.style.display = "none";
       return;
     }
 
@@ -850,6 +856,7 @@
     $modalCaption.textContent = "";
     $modalDots.innerHTML = "";
     if ($modalCounter) $modalCounter.textContent = "";
+    if ($modalPager) $modalPager.style.display = "none";
     state.modalAssets = [];
     state.modalIndex = 0;
     state.modalCaption = "";
@@ -1027,6 +1034,7 @@
         $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
         $btnMore.style.display = "none";
         $btnLess.style.display = "none";
+        if ($modalPager) $modalPager.style.display = "none";
         return;
       }
       state.dbId = data.dbId || null;
@@ -1045,11 +1053,13 @@
       renderGrid();
       updateCounts();
       updateViewButtons();
+      if ($modalPager) $modalPager.style.display = "none";
     }catch(e){
       console.error("Load error:", e);
       $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
       $btnMore.style.display = "none";
       $btnLess.style.display = "none";
+      if ($modalPager) $modalPager.style.display = "none";
     }
   }
 
