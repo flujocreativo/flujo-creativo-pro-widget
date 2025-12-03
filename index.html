@@ -18,14 +18,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
   .wrap{max-width:var(--container);margin:0 auto;padding:14px}
-function passViewMode(it){
-  // En "reels" solo mostramos posts que tienen video
-  if (state.viewMode === "reels") {
-    return !!it.isVideo;
-  }
-  // En "grid" mostramos todo
-  return true;
-}
+
   .toolbar{
     display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;
@@ -396,11 +389,23 @@ function passViewMode(it){
   function passPlatform(it){
     return !state.selectedPlatform || it.platform === state.selectedPlatform;
   }
+
   function passStatus(it){
     return !state.selectedStatus || it.status === state.selectedStatus;
   }
+
+  // NUEVO: filtro por viewMode
+  function passViewMode(it){
+    // En "reels" solo mostramos posts que tienen video
+    if (state.viewMode === "reels") {
+      return !!it.isVideo;
+    }
+    // En "grid" mostramos todo
+    return true;
+  }
+
   function passFilters(it){
-    return passPlatform(it) && passStatus(it);
+    return passPlatform(it) && passStatus(it) && passViewMode(it);
   }
 
   function renderBio(){
@@ -677,14 +682,16 @@ function passViewMode(it){
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
   }
 
+  // AHORA SÍ: cambiar vista + recargar grid
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     updateViewButtons();
-    // en esta versión no cambia los datos, solo el estado visual
+    renderGrid();
   };
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
     updateViewButtons();
+    renderGrid();
   };
 
   function handleRefresh(){
