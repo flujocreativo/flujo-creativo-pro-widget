@@ -621,16 +621,25 @@
   let touchSourceItem = null;
   let justReordered = false;
 
+  function applyOrderNumbers(arr){
+    arr.forEach((it, i) => {
+      it._order = typeof it._order === "number" ? it._order : i;
+    });
+  }
+
+  function resortItems(){
+    state.items = (state.items || []).slice().sort((a,b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const oa = typeof a._order === "number" ? a._order : 0;
+      const ob = typeof b._order === "number" ? b._order : 0;
+      return oa - ob;
+    });
+  }
+
   function renderGrid(){
-    const allFiltered = (state.items || [])
-      .slice()
-      .sort((a,b) => {
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        const da = a.publishDate ? new Date(a.publishDate).getTime() : 0;
-        const db = b.publishDate ? new Date(b.publishDate).getTime() : 0;
-        return db - da;
-      })
-      .filter(passFilters);
+    resortItems();
+
+    const allFiltered = (state.items || []).filter(passFilters);
 
     const total = allFiltered.length;
 
@@ -756,6 +765,7 @@
         const arr = state.items.slice();
         const [moved] = arr.splice(fromIndex,1);
         arr.splice(toIndex,0,moved);
+        applyOrderNumbers(arr);
         state.items = arr;
         justReordered = true;
         renderGrid();
@@ -789,6 +799,7 @@
         const arr = state.items.slice();
         const [moved] = arr.splice(fromIndex,1);
         arr.splice(toIndex,0,moved);
+        applyOrderNumbers(arr);
         state.items = arr;
         justReordered = true;
         renderGrid();
@@ -1083,7 +1094,13 @@
         return;
       }
       state.dbId = data.dbId || null;
-      state.items = data.items || [];
+
+      // asignar _order inicial
+      state.items = (data.items || []).map((it, idx) => ({
+        ...it,
+        _order: typeof it._order === "number" ? it._order : idx
+      }));
+
       state.bio = data.bio || null;
 
       try{
