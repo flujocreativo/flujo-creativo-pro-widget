@@ -723,7 +723,11 @@
       const idx = parseInt(card.getAttribute("data-idx"), 10);
       const item = items[idx];
       const vid = card.querySelector("video.card-video");
-
+  // Desactivar drag nativo en la imagen / video
+  const mediaEl = card.querySelector("img.card-img, video.card-video");
+  if (mediaEl) {
+    mediaEl.draggable = false;
+    }
       if (vid){
         card.addEventListener("mouseenter", () => {
           vid.play().catch(()=>{});
