@@ -616,7 +616,10 @@
     $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
+  // ---- Drag & drop state ----
   let dragSourceItem = null;
+  let touchSourceItem = null;
+  let justReordered = false;
 
   function renderGrid(){
     const allFiltered = (state.items || [])
@@ -721,12 +724,16 @@
         });
       }
 
-      // drag & drop
+      // --- DESKTOP drag & drop (HTML5) ---
       card.setAttribute("draggable","true");
 
-      card.addEventListener("dragstart", () => {
+      card.addEventListener("dragstart", (e) => {
         dragSourceItem = item;
         card.classList.add("dragging");
+        if (e.dataTransfer){
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", "");
+        }
       });
 
       card.addEventListener("dragend", () => {
@@ -750,11 +757,49 @@
         const [moved] = arr.splice(fromIndex,1);
         arr.splice(toIndex,0,moved);
         state.items = arr;
+        justReordered = true;
         renderGrid();
       });
 
+      // --- MOBILE / TOUCH reordenar ---
+      card.addEventListener("touchstart", () => {
+        touchSourceItem = item;
+      }, {passive:true});
+
+      card.addEventListener("touchend", (e) => {
+        if (!touchSourceItem) return;
+        const sourceItem = touchSourceItem;
+        touchSourceItem = null;
+
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) return;
+
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetCard = el && el.closest('.card[data-type="real"]');
+        if (!targetCard) return;
+
+        const targetIdx = parseInt(targetCard.getAttribute("data-idx"), 10);
+        const targetItem = items[targetIdx];
+        if (!targetItem || targetItem === sourceItem) return;
+
+        const fromIndex = state.items.indexOf(sourceItem);
+        const toIndex = state.items.indexOf(targetItem);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const arr = state.items.slice();
+        const [moved] = arr.splice(fromIndex,1);
+        arr.splice(toIndex,0,moved);
+        state.items = arr;
+        justReordered = true;
+        renderGrid();
+      }, {passive:true});
+
+      // Click para abrir modal (pero no justo después de reordenar)
       card.addEventListener("click", () => {
-        if (card.classList.contains("dragging")) return;
+        if (card.classList.contains("dragging") || justReordered){
+          justReordered = false;
+          return;
+        }
         openModal(item);
       });
     });
@@ -886,7 +931,7 @@
     if (e.key === "ArrowRight") $btnNext.click();
   });
 
-  // Swipe en mobile (izq / der)
+  // Swipe en mobile (izq / der) para el modal
   (function setupSwipe(){
     let startX = null;
     let isTouching = false;
