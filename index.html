@@ -399,7 +399,7 @@
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    visibleCount: BASE_LIMIT // para load more / less
+    visibleCount: BASE_LIMIT
   };
 
   // DOM refs
@@ -478,12 +478,11 @@
     return !state.selectedStatus || it.status === state.selectedStatus;
   }
 
-  // Filtro por viewMode
   function passViewMode(it){
     if (state.viewMode === "reels") {
-      return !!it.isVideo; // solo posts con video
+      return !!it.isVideo;
     }
-    return true; // grid muestra todo
+    return true;
   }
 
   function passFilters(it){
@@ -616,9 +615,8 @@
     $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
-  // ---- Drag & drop state ----
-  let dragSourceItem = null;
-  let touchSourceItem = null;
+  // ---- Drag & drop / orden ----
+  let dragSourceId = null;
   let justReordered = false;
 
   function applyOrderNumbers(arr){
@@ -636,11 +634,24 @@
     });
   }
 
+  function reorderByIds(sourceId, targetId){
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    const arr = (state.items || []).slice();
+    const fromIndex = arr.findIndex(x => x._id === sourceId);
+    const toIndex = arr.findIndex(x => x._id === targetId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [moved] = arr.splice(fromIndex,1);
+    arr.splice(toIndex,0,moved);
+    applyOrderNumbers(arr);
+    state.items = arr;
+    justReordered = true;
+    renderGrid();
+  }
+
   function renderGrid(){
     resortItems();
 
     const allFiltered = (state.items || []).filter(passFilters);
-
     const total = allFiltered.length;
 
     const emptyMsg = state.viewMode === "reels"
@@ -656,7 +667,6 @@
       return;
     }
 
-    // visibleCount no puede pasar de total
     const visible = Math.min(state.visibleCount || BASE_LIMIT, total);
     const items = allFiltered.slice(0, visible);
 
@@ -688,7 +698,7 @@
         ? `<div class="card-title">${it.title}</div>`
         : '<div class="card-title"></div>';
 
-      return `<article class="card" data-type="real" data-idx="${idx}">
+      return `<article class="card" data-type="real" data-idx="${idx}" data-id="${it._id}">
         <div class="badge">${badges.join("")}</div>
         ${media}
         <div class="card-overlay">
@@ -708,7 +718,6 @@
 
     $grid.innerHTML = realCardsHtml + placeholdersHtml;
 
-    // Mostrar / ocultar botones de paginación
     if (total <= BASE_LIMIT){
       $btnMore.style.display = "none";
       $btnLess.style.display = "none";
@@ -717,17 +726,16 @@
       $btnLess.style.display = (state.visibleCount > BASE_LIMIT) ? "inline-flex" : "none";
     }
 
-    // hover + click + drag & drop
     const cards = Array.from($grid.querySelectorAll('.card[data-type="real"]'));
     cards.forEach(card => {
       const idx = parseInt(card.getAttribute("data-idx"), 10);
       const item = items[idx];
       const vid = card.querySelector("video.card-video");
-  // Desactivar drag nativo en la imagen / video
-  const mediaEl = card.querySelector("img.card-img, video.card-video");
-  if (mediaEl) {
-    mediaEl.draggable = false;
-    }
+
+      // Desactivar drag nativo en media para que el drag sea del card
+      const mediaEl = card.querySelector("img.card-img, video.card-video");
+      if (mediaEl) mediaEl.draggable = false;
+
       if (vid){
         card.addEventListener("mouseenter", () => {
           vid.play().catch(()=>{});
@@ -737,11 +745,14 @@
         });
       }
 
-      // --- DESKTOP drag & drop (HTML5) ---
+      const id = card.getAttribute("data-id");
+
+      // DESKTOP drag & drop
       card.setAttribute("draggable","true");
 
-      card.addEventListener("dragstart", (e) => {
-        dragSourceItem = item;
+      card.addEventListener("dragstart", e => {
+        dragSourceId = id;
+        justReordered = false;
         card.classList.add("dragging");
         if (e.dataTransfer){
           e.dataTransfer.effectAllowed = "move";
@@ -750,7 +761,7 @@
       });
 
       card.addEventListener("dragend", () => {
-        dragSourceItem = null;
+        dragSourceId = null;
         card.classList.remove("dragging");
       });
 
@@ -760,56 +771,26 @@
 
       card.addEventListener("drop", e => {
         e.preventDefault();
-        if (!dragSourceItem || dragSourceItem === item) return;
-
-        const fromIndex = state.items.indexOf(dragSourceItem);
-        const toIndex = state.items.indexOf(item);
-        if (fromIndex === -1 || toIndex === -1) return;
-
-        const arr = state.items.slice();
-        const [moved] = arr.splice(fromIndex,1);
-        arr.splice(toIndex,0,moved);
-        applyOrderNumbers(arr);
-        state.items = arr;
-        justReordered = true;
-        renderGrid();
+        reorderByIds(dragSourceId, id);
       });
 
-      // --- MOBILE / TOUCH reordenar ---
+      // MOBILE / TOUCH reordenar
       card.addEventListener("touchstart", () => {
-        touchSourceItem = item;
+        dragSourceId = id;
+        justReordered = false;
       }, {passive:true});
 
-      card.addEventListener("touchend", (e) => {
-        if (!touchSourceItem) return;
-        const sourceItem = touchSourceItem;
-        touchSourceItem = null;
-
+      card.addEventListener("touchend", e => {
         const touch = e.changedTouches && e.changedTouches[0];
-        if (!touch) return;
-
+        if (!touch || !dragSourceId) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetCard = el && el.closest('.card[data-type="real"]');
-        if (!targetCard) return;
-
-        const targetIdx = parseInt(targetCard.getAttribute("data-idx"), 10);
-        const targetItem = items[targetIdx];
-        if (!targetItem || targetItem === sourceItem) return;
-
-        const fromIndex = state.items.indexOf(sourceItem);
-        const toIndex = state.items.indexOf(targetItem);
-        if (fromIndex === -1 || toIndex === -1) return;
-
-        const arr = state.items.slice();
-        const [moved] = arr.splice(fromIndex,1);
-        arr.splice(toIndex,0,moved);
-        applyOrderNumbers(arr);
-        state.items = arr;
-        justReordered = true;
-        renderGrid();
+        const targetId = targetCard && targetCard.getAttribute("data-id");
+        reorderByIds(dragSourceId, targetId);
+        dragSourceId = null;
       }, {passive:true});
 
-      // Click para abrir modal (pero no justo después de reordenar)
+      // Click para abrir modal (ignora click justo después de reordenar)
       card.addEventListener("click", () => {
         if (card.classList.contains("dragging") || justReordered){
           justReordered = false;
@@ -832,13 +813,11 @@
       return;
     }
 
-    // 0 o 1 asset → ocultar TODO el pill
     if (!total || total === 1){
       $modalPager.style.display = "none";
       return;
     }
 
-    // 2+ assets → mostrar pill
     $modalPager.style.display = "flex";
 
     const frag = document.createDocumentFragment();
@@ -1099,10 +1078,10 @@
       }
       state.dbId = data.dbId || null;
 
-      // asignar _order inicial
       state.items = (data.items || []).map((it, idx) => ({
         ...it,
-        _order: typeof it._order === "number" ? it._order : idx
+        _order: typeof it._order === "number" ? it._order : idx,
+        _id: it._id || it.id || it.pageId || it.notionId || `local-${idx}`
       }));
 
       state.bio = data.bio || null;
