@@ -615,8 +615,7 @@
     $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
-  // ---- Drag & drop / orden ----
-  let dragSourceId = null;
+  // ---- Drag & drop / orden (pointer API) ----
   let justReordered = false;
 
   function applyOrderNumbers(arr){
@@ -731,8 +730,9 @@
       const idx = parseInt(card.getAttribute("data-idx"), 10);
       const item = items[idx];
       const vid = card.querySelector("video.card-video");
+      const id = card.getAttribute("data-id");
 
-      // Desactivar drag nativo en media para que el drag sea del card
+      // Desactivar drag nativo en media
       const mediaEl = card.querySelector("img.card-img, video.card-video");
       if (mediaEl) mediaEl.draggable = false;
 
@@ -745,59 +745,69 @@
         });
       }
 
-      const id = card.getAttribute("data-id");
+      // ---- Pointer-based drag & drop (mouse + touch) ----
+      let isPointerDown = false;
+      let pointerMoved = false;
+      let pointerId = null;
+      let startX = 0;
+      let startY = 0;
+      const DRAG_THRESHOLD = 5; // px
 
-      // DESKTOP drag & drop
-      card.setAttribute("draggable","true");
-
-      card.addEventListener("dragstart", e => {
-        dragSourceId = id;
-        justReordered = false;
+      card.addEventListener("pointerdown", (e) => {
+        // solo botón principal (o touch)
+        if (e.button !== 0 && e.pointerType === "mouse") return;
+        isPointerDown = true;
+        pointerMoved = false;
+        pointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        card.setPointerCapture(pointerId);
         card.classList.add("dragging");
-        if (e.dataTransfer){
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", "");
+      });
+
+      card.addEventListener("pointermove", (e) => {
+        if (!isPointerDown) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (!pointerMoved && Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD){
+          pointerMoved = true;
         }
       });
 
-      card.addEventListener("dragend", () => {
-        dragSourceId = null;
+      function endPointer(e){
+        if (!isPointerDown) return;
+        isPointerDown = false;
         card.classList.remove("dragging");
-      });
+        try{
+          if (pointerId != null){
+            card.releasePointerCapture(pointerId);
+          }
+        }catch(_){}
+        pointerId = null;
 
-      card.addEventListener("dragover", e => {
-        e.preventDefault();
-      });
-
-      card.addEventListener("drop", e => {
-        e.preventDefault();
-        reorderByIds(dragSourceId, id);
-      });
-
-      // MOBILE / TOUCH reordenar
-      card.addEventListener("touchstart", () => {
-        dragSourceId = id;
-        justReordered = false;
-      }, {passive:true});
-
-      card.addEventListener("touchend", e => {
-        const touch = e.changedTouches && e.changedTouches[0];
-        if (!touch || !dragSourceId) return;
-        const el = document.elementFromPoint(touch.clientX, touch.clientY);
-        const targetCard = el && el.closest('.card[data-type="real"]');
-        const targetId = targetCard && targetCard.getAttribute("data-id");
-        reorderByIds(dragSourceId, targetId);
-        dragSourceId = null;
-      }, {passive:true});
-
-      // Click para abrir modal (ignora click justo después de reordenar)
-      card.addEventListener("click", () => {
-        if (card.classList.contains("dragging") || justReordered){
-          justReordered = false;
+        // si no se movió → click normal
+        if (!pointerMoved){
+          if (!justReordered){
+            openModal(item);
+          } else {
+            justReordered = false;
+          }
           return;
         }
-        openModal(item);
-      });
+
+        // se movió → reordenar
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+        if (clientX == null || clientY == null) return;
+
+        const el = document.elementFromPoint(clientX, clientY);
+        const targetCard = el && el.closest('.card[data-type="real"]');
+        const targetId = targetCard && targetCard.getAttribute("data-id");
+        reorderByIds(id, targetId);
+      }
+
+      card.addEventListener("pointerup", endPointer);
+      card.addEventListener("pointercancel", endPointer);
     });
   }
 
@@ -925,7 +935,7 @@
     if (e.key === "ArrowRight") $btnNext.click();
   });
 
-  // Swipe en mobile (izq / der) para el modal
+  // Swipe en mobile (izq / der) para el modal (extra, pero ya casi no hace falta con pointer)
   (function setupSwipe(){
     let startX = null;
     let isTouching = false;
