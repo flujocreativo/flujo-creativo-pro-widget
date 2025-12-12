@@ -307,6 +307,10 @@
     <button id="btnViewReels" class="btn-icon view-toggle" title="Reels view">
       <i class="fa-solid fa-film"></i>
     </button>
+    <!-- Draft Mode como toggle tipo Reels -->
+    <button id="btnDrafts" class="btn-icon view-toggle" title="Show drafts">
+      <i class="fa-regular fa-circle-dot"></i>
+    </button>
 
     <div class="menu" id="menu">
       <button id="btnMenu" class="btn-icon" title="Options">…</button>
@@ -399,7 +403,8 @@
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    visibleCount: BASE_LIMIT
+    visibleCount: BASE_LIMIT,
+    showDrafts: true   // 👈 nuevo: modo Drafts on/off
   };
 
   // DOM refs
@@ -449,6 +454,7 @@
 
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
+  const $btnDrafts   = document.getElementById("btnDrafts");
 
   const $btnMore = document.getElementById("btnMore");
   const $btnLess = document.getElementById("btnLess");
@@ -485,8 +491,25 @@
     return true;
   }
 
+  // --- Draft helpers ---
+  function isDraft(it){
+    if (!it || !it.status) return false;
+    return it.status === "Draft" || it.status === "Borrador";
+  }
+
+  function passDraft(it){
+    // En modo readonly nunca mostramos drafts
+    if (READONLY){
+      return !isDraft(it);
+    }
+    if (state.showDrafts){
+      return true; // mostrar todo
+    }
+    return !isDraft(it); // ocultar drafts
+  }
+
   function passFilters(it){
-    return passPlatform(it) && passStatus(it) && passViewMode(it);
+    return passPlatform(it) && passStatus(it) && passViewMode(it) && passDraft(it);
   }
 
   function renderBio(){
@@ -991,7 +1014,7 @@
     if (e.key === "ArrowRight") $btnNext.click();
   });
 
-  // Swipe en mobile (izq / der) para el modal (extra, pero ya casi no hace falta con pointer)
+  // Swipe en mobile (izq / der) para el modal
   (function setupSwipe(){
     let startX = null;
     let isTouching = false;
@@ -1049,6 +1072,17 @@
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
   }
 
+  function updateDraftButton(){
+    if (!$btnDrafts) return;
+
+    if (READONLY){
+      $btnDrafts.style.display = "none";
+      return;
+    }
+    $btnDrafts.style.display = "inline-flex";
+    $btnDrafts.classList.toggle("active", !!state.showDrafts);
+  }
+
   $btnViewGrid.onclick = () => {
     state.viewMode = "grid";
     state.visibleCount = BASE_LIMIT;
@@ -1061,6 +1095,17 @@
     updateViewButtons();
     renderGrid();
   };
+
+  if ($btnDrafts){
+    $btnDrafts.onclick = () => {
+      if (READONLY) return;
+      state.showDrafts = !state.showDrafts;
+      state.visibleCount = BASE_LIMIT;
+      updateDraftButton();
+      renderGrid();
+      updateCounts();
+    };
+  }
 
   // Load more / less
   $btnMore.onclick = () => {
@@ -1078,6 +1123,7 @@
     state.selectedPlatform = null;
     state.selectedStatus = null;
     state.visibleCount = BASE_LIMIT;
+    state.showDrafts = true; // al refrescar volvemos a mostrar todo
     $labelPlatforms.textContent = "All Platforms";
     $labelStatus.textContent = "All Status";
     closeDD();
@@ -1167,6 +1213,7 @@
       renderGrid();
       updateCounts();
       updateViewButtons();
+      updateDraftButton();
       if ($modalPager) $modalPager.style.display = "none";
     }catch(e){
       console.error("Load error:", e);
