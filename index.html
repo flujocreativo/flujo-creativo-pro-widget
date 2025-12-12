@@ -615,12 +615,66 @@
     $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
+  // ---- Persistencia de orden en localStorage (solo front) ----
+  function getOrderKey(){
+    if (!state.dbId) return null;
+    return `igGridOrder:${state.dbId}`;
+  }
+
+  function loadSavedOrder(){
+    const key = getOrderKey();
+    if (!key) return;
+    let raw;
+    try{
+      raw = localStorage.getItem(key);
+    }catch(e){
+      return;
+    }
+    if (!raw) return;
+
+    let ids;
+    try{
+      ids = JSON.parse(raw);
+    }catch(e){
+      return;
+    }
+    if (!Array.isArray(ids) || !ids.length) return;
+
+    const indexById = new Map();
+    ids.forEach((id, idx) => {
+      indexById.set(id, idx);
+    });
+
+    (state.items || []).forEach(it => {
+      const id = it._id || it.id;
+      if (!id) return;
+      if (indexById.has(id)){
+        it._order = indexById.get(id);
+      }
+    });
+  }
+
+  function saveCurrentOrder(){
+    if (READONLY) return; // no guardamos nada en modo readonly
+    const key = getOrderKey();
+    if (!key) return;
+    const ids = (state.items || [])
+      .map(it => it._id || it.id)
+      .filter(Boolean);
+    if (!ids.length) return;
+    try{
+      localStorage.setItem(key, JSON.stringify(ids));
+    }catch(e){
+      console.error("No se pudo guardar el orden en localStorage", e);
+    }
+  }
+
   // ---- Drag & drop / orden (pointer API) ----
   let justReordered = false;
 
   function applyOrderNumbers(arr){
     arr.forEach((it, i) => {
-      // aquí el cambio: siempre reasignar el orden según la posición actual
+      // siempre reasignar el orden según la posición actual
       it._order = i;
     });
   }
@@ -645,6 +699,7 @@
     applyOrderNumbers(arr);
     state.items = arr;
     justReordered = true;
+    saveCurrentOrder();
     renderGrid();
   }
 
@@ -1094,6 +1149,9 @@
         _order: typeof it._order === "number" ? it._order : idx,
         _id: it._id || it.id || it.pageId || it.notionId || `local-${idx}`
       }));
+
+      // aplicar orden guardado si existe
+      loadSavedOrder();
 
       state.bio = data.bio || null;
 
