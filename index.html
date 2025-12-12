@@ -19,11 +19,19 @@
   html,body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
   .wrap{max-width:var(--container);margin:0 auto;padding:14px}
 
+  /* Toolbar layout (2 rows) */
   .toolbar{
+    display:flex;flex-direction:column;gap:10px;
+    border-bottom:1px solid var(--border);
+    padding-bottom:10px;margin-bottom:10px;
+    align-items:center;
+  }
+  .toolbar-row{
     display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-    border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;
     justify-content:center;
   }
+  .toolbar-row.views{gap:22px}
+
   .btn{
     border:1px solid var(--border);background:#111;color:#fff;
     padding:var(--ui-pad-y) var(--ui-pad-x);font-weight:700;cursor:pointer;
@@ -35,17 +43,33 @@
     font-size:16px;
   }
 
-  /* view toggles (solo UI) */
-  .view-toggle{
-    transition:background .15s,border-color .15s,color .15s, box-shadow .15s;
+  /* View tabs (underline active, like your screenshot) */
+  .view-tab{
+    width:44px;height:44px;
+    border:none;background:transparent;
+    display:inline-flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    color:#111;
+    border-radius:12px;
+    position:relative;
+    transition:transform .12s ease, opacity .12s ease;
+    opacity:.92;
   }
-  .view-toggle.active{
+  .view-tab:hover{opacity:1;transform:translateY(-1px)}
+  .view-tab.active::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:2px;
+    width:22px;
+    height:2px;
     background:#111;
-    color:#fff;
-    border-color:#111;
-    box-shadow:0 4px 12px rgba(0,0,0,.18);
+    border-radius:999px;
   }
+  .view-tab i{font-size:20px;line-height:1}
 
+  /* Filters */
   .filters-row{
     display:none;gap:10px;align-items:center;justify-content:center;
     padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px;
@@ -77,6 +101,7 @@
   .dd-item .label{flex:1}
   .dd-item .count{color:#999;font-size:12px}
 
+  /* Menu */
   .menu{position:relative}
   .menu-panel{
     position:absolute;right:0;top:calc(100% + 8px);min-width:260px;background:#fff;border:1px solid var(--border);
@@ -97,6 +122,7 @@
     border-top:1px solid var(--border);line-height:1.4;
   }
 
+  /* Bio */
   .bio{
     display:none;border:1px solid var(--border);padding:14px;margin:10px 0 12px;border-radius:12px;
   }
@@ -111,6 +137,7 @@
   .bio-lines{white-space:pre-wrap;margin:8px 0;line-height:1.45;font-size:14px}
   .bio-link a{color:#1B4B91;text-decoration:none;font-weight:600;font-size:14px}
 
+  /* Grid */
   .grid{
     display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0;
   }
@@ -118,9 +145,7 @@
     position:relative;background:#f5f5f5;cursor:pointer;overflow:hidden;
     aspect-ratio:4/5;transition:opacity .2s,transform .2s;
   }
-  .card-img,.card-video{
-    width:100%;height:100%;object-fit:cover;display:block;
-  }
+  .card-img,.card-video{width:100%;height:100%;object-fit:cover;display:block;}
   .card-video{pointer-events:none}
   .card-video::-webkit-media-controls-enclosure,
   .card-video::-webkit-media-controls{display:none !important;}
@@ -138,28 +163,19 @@
     background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
     padding:8px;display:flex;justify-content:space-between;align-items:flex-end;
     color:#fff;
-    opacity:0;
-    transition: opacity .18s ease;
+    opacity:0;transition: opacity .18s ease;
   }
   .card:hover .card-overlay{opacity:1}
-  .card-title{
-    font-weight:600;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.5);
-  }
+  .card-title{font-weight:600;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.5);}
   .card-title:empty{display:none;}
-  .card-date{
-    font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5);
-  }
+  .card-date{font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5);}
   .card-placeholder{
     display:flex;align-items:center;justify-content:center;
     color:#aaa;font-size:14px;font-weight:500;
   }
 
   /* Drag & drop visual */
-  .card.dragging{
-    outline:2px solid #fff;
-    outline-offset:-2px;
-    cursor:grabbing;
-  }
+  .card.dragging{outline:2px solid #fff;outline-offset:-2px;cursor:grabbing;}
 
   /* Skeleton */
   .card.skel{background:#f3f4f6;cursor:default}
@@ -168,12 +184,9 @@
     background:linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
     animation:pulse 1.4s ease-in-out infinite;
   }
-  @keyframes pulse{
-    0%{transform:translateX(-20%);}
-    50%{transform:translateX(0);}
-    100%{transform:translateX(20%);}
-  }
+  @keyframes pulse{0%{transform:translateX(-20%);}50%{transform:translateX(0);}100%{transform:translateX(20%);} }
 
+  /* Modal */
   .modal{
     position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
     align-items:center;justify-content:center;z-index:50;padding:20px;
@@ -184,7 +197,6 @@
     background:rgba(255,255,255,0.9);border:none;border-radius:50%;cursor:pointer;
     font-size:24px;font-weight:bold;display:flex;align-items:center;justify-content:center;color:#111;
   }
-
   .modal-content{
     max-width:90vw;max-height:90vh;display:flex;
     flex-direction:column;align-items:center;gap:12px;
@@ -216,57 +228,42 @@
   .zone.prev{left:0}
   .zone.next{right:0}
 
-  /* Pager del carrusel en modal (dots + 2/7) tipo pill iOS */
   .modal-pager{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    margin-top:8px;
-    padding:6px 14px;
-    border-radius:999px;
-    background:rgba(0,0,0,.55);
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-top:8px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.55);
   }
-
-  .modal-counter{
-    color:#fff;
-    font-size:12px;
-    opacity:.85;
-  }
-
-  .modal-dots{
-    display:flex;
-    gap:6px;
-    justify-content:center;
-  }
+  .modal-counter{color:#fff;font-size:12px;opacity:.85;}
+  .modal-dots{display:flex;gap:6px;justify-content:center;}
   .modal-dot{
-    width:7px;
-    height:7px;
-    border-radius:999px;
-    background:rgba(255,255,255,.35);
-    cursor:pointer;
-    transition:transform .15s ease, background .15s ease, opacity .15s ease, width .15s ease;
+    width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.35);
+    cursor:pointer;transition:transform .15s ease, background .15s ease, opacity .15s ease, width .15s ease;
     opacity:.7;
   }
-  .modal-dot.active{
-    width:16px;
-    background:#fff;
-    opacity:1;
-    transform:translateY(-1px);
-  }
+  .modal-dot.active{width:16px;background:#fff;opacity:1;transform:translateY(-1px);}
 
-  /* Load more / less row */
-  .pager-row{
-    display:flex;
-    justify-content:center;
-    gap:8px;
-    margin:10px 0 0;
-  }
-  .pager-row .btn{
+  /* Load more / less */
+  .pager-row{display:flex;justify-content:center;gap:8px;margin:10px 0 0;}
+  .pager-row .btn{font-size:12px;padding:6px 10px;border-radius:999px;}
+
+  /* Tooltip (clarito tipo Notion) */
+  .tip{
+    position:fixed;
+    z-index:9999;
+    display:none;
+    pointer-events:none;
+    background:#fff;
+    border:1px solid #e6e7eb;
+    box-shadow:0 10px 30px rgba(0,0,0,.10);
+    border-radius:10px;
+    padding:8px 10px;
     font-size:12px;
-    padding:6px 10px;
-    border-radius:999px;
+    color:#111;
+    line-height:1.2;
+    max-width:220px;
   }
+  .tip.show{display:block}
+  .tip .t{font-weight:600}
+  .tip .s{margin-top:3px;color:#6b7280;font-weight:500}
 
   @media (hover:hover){
     .nav-btn{opacity:0}
@@ -284,45 +281,50 @@
   .ro .menu { display:none; }
 </style>
 </head>
+
 <body>
 <main class="wrap">
   <div class="toolbar">
-    <button id="btnRefresh" class="btn">
-      <animated-icons id="aiRefresh"
-        src="https://animatedicons.co/get-icon?name=Restart&style=minimalistic&token=13c130bf-0940-48c2-92e3-16b6ffe3b232"
-        trigger="click"
-        attributes='{"variationThumbColour":"#FFFFFF","variationName":"Normal","variationNumber":1,"numberOfGroups":1,"backgroundIsGroup":false,"strokeWidth":1.48,"defaultColours":{"group-1":"#FFFFFFFF","background":"#FFFFFF"}}'
-        height="18" width="18"></animated-icons>
-      Refresh
-    </button>
+    <!-- ROW 1 -->
+    <div class="toolbar-row">
+      <button id="btnRefresh" class="btn" data-tip="Refresh" data-sub="Update content">
+        <animated-icons id="aiRefresh"
+          src="https://animatedicons.co/get-icon?name=Restart&style=minimalistic&token=13c130bf-0940-48c2-92e3-16b6ffe3b232"
+          trigger="click"
+          attributes='{"variationThumbColour":"#FFFFFF","variationName":"Normal","variationNumber":1,"numberOfGroups":1,"backgroundIsGroup":false,"strokeWidth":1.48,"defaultColours":{"group-1":"#FFFFFFFF","background":"#FFFFFF"}}'
+          height="18" width="18"></animated-icons>
+        Refresh
+      </button>
 
-    <button id="btnFilter" class="btn-icon" title="Filter">
-      <i class="fa-solid fa-sliders"></i>
-    </button>
+      <button id="btnFilter" class="btn-icon" data-tip="Filter" data-sub="Platforms & status">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
 
-    <!-- View toggles (visuales) -->
-    <button id="btnViewGrid" class="btn-icon view-toggle active" title="Grid view">
-      <i class="fa-solid fa-table-cells-large"></i>
-    </button>
-    <button id="btnViewReels" class="btn-icon view-toggle" title="Reels view">
-      <i class="fa-solid fa-film"></i>
-    </button>
-    <!-- Draft Mode como toggle tipo Reels -->
-    <button id="btnDrafts" class="btn-icon view-toggle" title="Show drafts">
-      <i class="fa-regular fa-circle-dot"></i>
-    </button>
-
-    <div class="menu" id="menu">
-      <button id="btnMenu" class="btn-icon" title="Options">…</button>
-      <div class="menu-panel">
-        <div class="menu-row" id="rowBio">
-          <span style="font-weight:600">Show Bio</span>
-          <div id="switchBio" class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-        </div>
-        <div class="menu-note">
-          Want to customize your bio or story highlights? Visit the Bio Settings table and edit them from there.
+      <div class="menu" id="menu">
+        <button id="btnMenu" class="btn-icon" data-tip="Options" data-sub="Bio & settings">…</button>
+        <div class="menu-panel">
+          <div class="menu-row" id="rowBio">
+            <span style="font-weight:600">Show Bio</span>
+            <div id="switchBio" class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
+          </div>
+          <div class="menu-note">
+            Want to customize your bio or story highlights? Visit your account page and edit your widget settings there.
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- ROW 2 (tabs) -->
+    <div class="toolbar-row views">
+      <button id="btnViewGrid" class="view-tab active" data-tip="Grid" data-sub="Published content grid" aria-label="Grid view">
+        <i class="fa-solid fa-table-cells-large"></i>
+      </button>
+      <button id="btnViewReels" class="view-tab" data-tip="Reels" data-sub="Videos only" aria-label="Reels view">
+        <i class="fa-solid fa-film"></i>
+      </button>
+      <button id="btnViewDrafts" class="view-tab" data-tip="Drafts" data-sub="Status = Draft" aria-label="Drafts view">
+        <i class="fa-solid fa-box-archive"></i>
+      </button>
     </div>
   </div>
 
@@ -358,7 +360,6 @@
 
   <section id="grid" class="grid" aria-live="polite"></section>
 
-  <!-- Load more / less -->
   <div class="pager-row" id="pagerRow">
     <button id="btnLess" class="btn" style="display:none;">Show less</button>
     <button id="btnMore" class="btn" style="display:none;">Load more</button>
@@ -376,7 +377,6 @@
       <div id="zoneNext" class="zone next" aria-hidden="true"></div>
     </div>
 
-    <!-- Dots + contador tipo TikTok/iOS -->
     <div id="modalPager" class="modal-pager">
       <div id="modalDots" class="modal-dots"></div>
       <div id="modalCounter" class="modal-counter"></div>
@@ -384,6 +384,12 @@
 
     <div id="modalCaption" class="modal-caption"></div>
   </div>
+</div>
+
+<!-- tooltip -->
+<div id="tip" class="tip" role="tooltip" aria-hidden="true">
+  <div class="t" id="tipT"></div>
+  <div class="s" id="tipS"></div>
 </div>
 
 <script>
@@ -399,12 +405,11 @@
     selectedStatus: null,
     bio: null,
     showBio: true,
-    viewMode: "grid",
+    viewMode: "grid", // "grid" | "reels" | "drafts"
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
-    visibleCount: BASE_LIMIT,
-    showDrafts: true   // 👈 nuevo: modo Drafts on/off
+    visibleCount: BASE_LIMIT
   };
 
   // DOM refs
@@ -454,10 +459,43 @@
 
   const $btnViewGrid = document.getElementById("btnViewGrid");
   const $btnViewReels = document.getElementById("btnViewReels");
-  const $btnDrafts   = document.getElementById("btnDrafts");
+  const $btnViewDrafts = document.getElementById("btnViewDrafts");
 
   const $btnMore = document.getElementById("btnMore");
   const $btnLess = document.getElementById("btnLess");
+
+  /* Tooltip wiring */
+  const $tip = document.getElementById("tip");
+  const $tipT = document.getElementById("tipT");
+  const $tipS = document.getElementById("tipS");
+
+  function showTip(el){
+    const t = el.getAttribute("data-tip");
+    if (!t) return;
+    const s = el.getAttribute("data-sub") || "";
+    $tipT.textContent = t;
+    $tipS.textContent = s;
+    $tip.classList.add("show");
+    $tip.setAttribute("aria-hidden","false");
+  }
+  function moveTip(e){
+    const pad = 12;
+    const x = (e.clientX ?? 0) + pad;
+    const y = (e.clientY ?? 0) + pad;
+    $tip.style.left = x + "px";
+    $tip.style.top  = y + "px";
+  }
+  function hideTip(){
+    $tip.classList.remove("show");
+    $tip.setAttribute("aria-hidden","true");
+  }
+  function bindTip(el){
+    el.addEventListener("mouseenter", () => showTip(el));
+    el.addEventListener("mousemove", moveTip);
+    el.addEventListener("mouseleave", hideTip);
+  }
+  // bind tooltips to key controls
+  [$btnRefresh,$btnFilter,$btnMenu,$btnViewGrid,$btnViewReels,$btnViewDrafts].forEach(b => b && bindTip(b));
 
   function formatDate(dateStr){
     if(!dateStr) return "";
@@ -479,37 +517,33 @@
   function passPlatform(it){
     return !state.selectedPlatform || it.platform === state.selectedPlatform;
   }
-
   function passStatus(it){
     return !state.selectedStatus || it.status === state.selectedStatus;
   }
 
-  function passViewMode(it){
-    if (state.viewMode === "reels") {
-      return !!it.isVideo;
-    }
-    return true;
-  }
-
-  // --- Draft helpers ---
   function isDraft(it){
     if (!it || !it.status) return false;
     return it.status === "Draft" || it.status === "Borrador";
   }
 
-  function passDraft(it){
-    // En modo readonly nunca mostramos drafts
-    if (READONLY){
-      return !isDraft(it);
+  function passViewMode(it){
+    // readonly: nunca mostrar drafts
+    if (READONLY && isDraft(it)) return false;
+
+    if (state.viewMode === "reels"){
+      // solo videos, NO drafts
+      return !!it.isVideo && !isDraft(it);
     }
-    if (state.showDrafts){
-      return true; // mostrar todo
+    if (state.viewMode === "drafts"){
+      // solo drafts
+      return isDraft(it);
     }
-    return !isDraft(it); // ocultar drafts
+    // grid: solo NO drafts
+    return !isDraft(it);
   }
 
   function passFilters(it){
-    return passPlatform(it) && passStatus(it) && passViewMode(it) && passDraft(it);
+    return passPlatform(it) && passStatus(it) && passViewMode(it);
   }
 
   function renderBio(){
@@ -539,9 +573,7 @@
 
   function toggleBio(){
     state.showBio = !state.showBio;
-    try{
-      localStorage.setItem("showBio", String(state.showBio));
-    }catch(e){}
+    try{ localStorage.setItem("showBio", String(state.showBio)); }catch(e){}
     setSwitch($switchBio, state.showBio);
     renderBio();
   }
@@ -577,14 +609,12 @@
 
     const platMenuItems = ["All Platforms", ...platforms];
     $menuPlatforms.innerHTML = platMenuItems.map(name => {
-      const count = name === "All Platforms"
-        ? allPlatCount
-        : (platCounts[name] || 0);
+      const count = name === "All Platforms" ? allPlatCount : (platCounts[name] || 0);
       const active = (name === "All Platforms" && !state.selectedPlatform) || state.selectedPlatform === name;
       return `<div class="dd-item ${active?"active":""}" data-v="${name}">
         <div class="radio"></div>
         <div class="label">${name}</div>
-        <div class="count">(${count})</div>
+        <div class="count">${count}</div>
       </div>`;
     }).join("");
 
@@ -603,14 +633,12 @@
 
     const statusMenuItems = ["All Status", ...statuses];
     $menuStatus.innerHTML = statusMenuItems.map(name => {
-      const count = name === "All Status"
-        ? allStatusCount
-        : (statusCounts[name] || 0);
+      const count = name === "All Status" ? allStatusCount : (statusCounts[name] || 0);
       const active = (name === "All Status" && !state.selectedStatus) || state.selectedStatus === name;
       return `<div class="dd-item ${active?"active":""}" data-v="${name}">
         <div class="radio"></div>
         <div class="label">${name}</div>
-        <div class="count">(${count})</div>
+        <div class="count">${count}</div>
       </div>`;
     }).join("");
 
@@ -638,68 +666,44 @@
     $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
   }
 
-  // ---- Persistencia de orden en localStorage (solo front) ----
+  // Persist order in localStorage
   function getOrderKey(){
     if (!state.dbId) return null;
     return `igGridOrder:${state.dbId}`;
   }
-
   function loadSavedOrder(){
     const key = getOrderKey();
     if (!key) return;
     let raw;
-    try{
-      raw = localStorage.getItem(key);
-    }catch(e){
-      return;
-    }
+    try{ raw = localStorage.getItem(key); }catch(e){ return; }
     if (!raw) return;
 
     let ids;
-    try{
-      ids = JSON.parse(raw);
-    }catch(e){
-      return;
-    }
+    try{ ids = JSON.parse(raw); }catch(e){ return; }
     if (!Array.isArray(ids) || !ids.length) return;
 
     const indexById = new Map();
-    ids.forEach((id, idx) => {
-      indexById.set(id, idx);
-    });
+    ids.forEach((id, idx) => indexById.set(id, idx));
 
     (state.items || []).forEach(it => {
       const id = it._id || it.id;
       if (!id) return;
-      if (indexById.has(id)){
-        it._order = indexById.get(id);
-      }
+      if (indexById.has(id)) it._order = indexById.get(id);
     });
   }
-
   function saveCurrentOrder(){
-    if (READONLY) return; // no guardamos nada en modo readonly
+    if (READONLY) return;
     const key = getOrderKey();
     if (!key) return;
-    const ids = (state.items || [])
-      .map(it => it._id || it.id)
-      .filter(Boolean);
+    const ids = (state.items || []).map(it => it._id || it.id).filter(Boolean);
     if (!ids.length) return;
-    try{
-      localStorage.setItem(key, JSON.stringify(ids));
-    }catch(e){
-      console.error("No se pudo guardar el orden en localStorage", e);
-    }
+    try{ localStorage.setItem(key, JSON.stringify(ids)); }catch(e){}
   }
 
-  // ---- Drag & drop / orden (pointer API) ----
   let justReordered = false;
 
   function applyOrderNumbers(arr){
-    arr.forEach((it, i) => {
-      // siempre reasignar el orden según la posición actual
-      it._order = i;
-    });
+    arr.forEach((it, i) => { it._order = i; });
   }
 
   function resortItems(){
@@ -732,9 +736,10 @@
     const allFiltered = (state.items || []).filter(passFilters);
     const total = allFiltered.length;
 
-    const emptyMsg = state.viewMode === "reels"
-      ? "No reels with video yet"
-      : "No content";
+    const emptyMsg =
+      state.viewMode === "reels" ? "No reels with video yet" :
+      state.viewMode === "drafts" ? "No drafts yet" :
+      "No content";
 
     if (!total){
       $grid.innerHTML = Array.from({length:BASE_LIMIT})
@@ -758,13 +763,7 @@
 
       if (first){
         if (first.type === "video"){
-          media = `<video
-            class="card-video"
-            src="${first.url}"
-            muted
-            loop
-            playsinline
-            preload="metadata"></video>`;
+          media = `<video class="card-video" src="${first.url}" muted loop playsinline preload="metadata"></video>`;
         } else {
           media = `<img class="card-img" src="${first.url}" alt="${(it.title || "").replace(/"/g,"&quot;")}" loading="lazy" decoding="async" />`;
         }
@@ -772,9 +771,7 @@
         media = '<div class="card-placeholder">No Content</div>';
       }
 
-      const titleHtml = it.title
-        ? `<div class="card-title">${it.title}</div>`
-        : '<div class="card-title"></div>';
+      const titleHtml = it.title ? `<div class="card-title">${it.title}</div>` : '<div class="card-title"></div>';
 
       return `<article class="card" data-type="real" data-idx="${idx}" data-id="${it._id}">
         <div class="badge">${badges.join("")}</div>
@@ -786,10 +783,7 @@
       </article>`;
     }).join("");
 
-    const placeholdersNeeded = total < BASE_LIMIT
-      ? Math.max(0, BASE_LIMIT - items.length)
-      : 0;
-
+    const placeholdersNeeded = total < BASE_LIMIT ? Math.max(0, BASE_LIMIT - items.length) : 0;
     const placeholdersHtml = Array.from({length:placeholdersNeeded})
       .map(() => `<div class="card card-placeholder">${emptyMsg}</div>`)
       .join("");
@@ -811,29 +805,22 @@
       const vid = card.querySelector("video.card-video");
       const id = card.getAttribute("data-id");
 
-      // Desactivar drag nativo en media
       const mediaEl = card.querySelector("img.card-img, video.card-video");
       if (mediaEl) mediaEl.draggable = false;
 
       if (vid){
-        card.addEventListener("mouseenter", () => {
-          vid.play().catch(()=>{});
-        });
-        card.addEventListener("mouseleave", () => {
-          vid.pause();
-        });
+        card.addEventListener("mouseenter", () => { vid.play().catch(()=>{}); });
+        card.addEventListener("mouseleave", () => { vid.pause(); });
       }
 
-      // ---- Pointer-based drag & drop (mouse + touch) ----
       let isPointerDown = false;
       let pointerMoved = false;
       let pointerId = null;
       let startX = 0;
       let startY = 0;
-      const DRAG_THRESHOLD = 5; // px
+      const DRAG_THRESHOLD = 5;
 
       card.addEventListener("pointerdown", (e) => {
-        // solo botón principal (o touch)
         if (e.button !== 0 && e.pointerType === "mouse") return;
         isPointerDown = true;
         pointerMoved = false;
@@ -857,14 +844,9 @@
         if (!isPointerDown) return;
         isPointerDown = false;
         card.classList.remove("dragging");
-        try{
-          if (pointerId != null){
-            card.releasePointerCapture(pointerId);
-          }
-        }catch(_){}
+        try{ if (pointerId != null) card.releasePointerCapture(pointerId); }catch(_){}
         pointerId = null;
 
-        // si no se movió → click normal
         if (!pointerMoved){
           if (!justReordered){
             openModal(item);
@@ -874,7 +856,6 @@
           return;
         }
 
-        // se movió → reordenar
         const clientX = e.clientX;
         const clientY = e.clientY;
         if (clientX == null || clientY == null) return;
@@ -892,41 +873,24 @@
 
   function renderModalDotsAndCounter(){
     const total = state.modalAssets.length;
-
     $modalDots.innerHTML = "";
-    if ($modalCounter){
-      $modalCounter.textContent = "";
-    }
-
-    if (!$modalPager){
-      return;
-    }
+    if ($modalCounter) $modalCounter.textContent = "";
 
     if (!total || total === 1){
       $modalPager.style.display = "none";
       return;
     }
-
     $modalPager.style.display = "flex";
 
     const frag = document.createDocumentFragment();
-
     state.modalAssets.forEach((_, i) => {
       const dot = document.createElement("div");
       dot.className = "modal-dot" + (i === state.modalIndex ? " active" : "");
-      dot.dataset.idx = String(i);
-      dot.addEventListener("click", () => {
-        state.modalIndex = i;
-        renderModalAsset();
-      });
+      dot.addEventListener("click", () => { state.modalIndex = i; renderModalAsset(); });
       frag.appendChild(dot);
     });
-
     $modalDots.appendChild(frag);
-
-    if ($modalCounter){
-      $modalCounter.textContent = `${state.modalIndex + 1}/${total}`;
-    }
+    if ($modalCounter) $modalCounter.textContent = `${state.modalIndex + 1}/${total}`;
   }
 
   function renderModalAsset(){
@@ -939,7 +903,7 @@
       $btnNext.disabled = true;
       $modalDots.innerHTML = "";
       if ($modalCounter) $modalCounter.textContent = "";
-      if ($modalPager) $modalPager.style.display = "none";
+      $modalPager.style.display = "none";
       return;
     }
 
@@ -963,7 +927,6 @@
     $modalCaption.textContent = idx === 0 ? state.modalCaption : "";
     $btnPrev.disabled = idx <= 0;
     $btnNext.disabled = idx >= state.modalAssets.length - 1;
-
     renderModalDotsAndCounter();
   }
 
@@ -984,24 +947,14 @@
     $modalCaption.textContent = "";
     $modalDots.innerHTML = "";
     if ($modalCounter) $modalCounter.textContent = "";
-    if ($modalPager) $modalPager.style.display = "none";
+    $modalPager.style.display = "none";
     state.modalAssets = [];
     state.modalIndex = 0;
     state.modalCaption = "";
   }
 
-  $btnPrev.onclick = () => {
-    if (state.modalIndex > 0){
-      state.modalIndex--;
-      renderModalAsset();
-    }
-  };
-  $btnNext.onclick = () => {
-    if (state.modalIndex < state.modalAssets.length - 1){
-      state.modalIndex++;
-      renderModalAsset();
-    }
-  };
+  $btnPrev.onclick = () => { if (state.modalIndex > 0){ state.modalIndex--; renderModalAsset(); } };
+  $btnNext.onclick = () => { if (state.modalIndex < state.modalAssets.length - 1){ state.modalIndex++; renderModalAsset(); } };
   $zonePrev.onclick = $btnPrev.onclick;
   $zoneNext.onclick = $btnNext.onclick;
   $modal.onclick = e => { if (e.target === $modal) closeModalFn(); };
@@ -1014,7 +967,6 @@
     if (e.key === "ArrowRight") $btnNext.click();
   });
 
-  // Swipe en mobile (izq / der) para el modal
   (function setupSwipe(){
     let startX = null;
     let isTouching = false;
@@ -1023,9 +975,6 @@
       isTouching = true;
       startX = (e.touches ? e.touches[0].clientX : e.clientX);
     }
-    function onMove(e){
-      if (!isTouching || startX == null) return;
-    }
     function onEnd(e){
       if (!isTouching || startX == null) return;
       const endX = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
@@ -1033,54 +982,36 @@
       const threshold = 40;
 
       if (Math.abs(diff) > threshold){
-        if (diff < 0){
-          $btnNext.click();
-        } else {
-          $btnPrev.click();
-        }
+        if (diff < 0) $btnNext.click();
+        else $btnPrev.click();
       }
       isTouching = false;
       startX = null;
     }
 
     $mediaWrap.addEventListener("touchstart", onStart, {passive:true});
-    $mediaWrap.addEventListener("touchmove", onMove, {passive:true});
     $mediaWrap.addEventListener("touchend", onEnd);
 
     let mouseDown = false;
-    $mediaWrap.addEventListener("mousedown", e => {
-      mouseDown = true;
-      onStart(e);
-    });
-    $mediaWrap.addEventListener("mousemove", e => {
-      if (!mouseDown) return;
-      onMove(e);
-    });
-    $mediaWrap.addEventListener("mouseup", e => {
-      if (!mouseDown) return;
-      mouseDown = false;
-      onEnd(e);
-    });
-    $mediaWrap.addEventListener("mouseleave", () => {
-      mouseDown = false;
-      startX = null;
-    });
+    $mediaWrap.addEventListener("mousedown", e => { mouseDown = true; onStart(e); });
+    $mediaWrap.addEventListener("mouseup", e => { if (!mouseDown) return; mouseDown = false; onEnd(e); });
+    $mediaWrap.addEventListener("mouseleave", () => { mouseDown = false; startX = null; });
   })();
 
   function updateViewButtons(){
     $btnViewGrid.classList.toggle("active", state.viewMode === "grid");
     $btnViewReels.classList.toggle("active", state.viewMode === "reels");
+    if ($btnViewDrafts) $btnViewDrafts.classList.toggle("active", state.viewMode === "drafts");
   }
 
-  function updateDraftButton(){
-    if (!$btnDrafts) return;
-
+  function applyReadonlyRules(){
+    if (!$btnViewDrafts) return;
     if (READONLY){
-      $btnDrafts.style.display = "none";
-      return;
+      $btnViewDrafts.style.display = "none";
+      if (state.viewMode === "drafts") state.viewMode = "grid";
+    } else {
+      $btnViewDrafts.style.display = "inline-flex";
     }
-    $btnDrafts.style.display = "inline-flex";
-    $btnDrafts.classList.toggle("active", !!state.showDrafts);
   }
 
   $btnViewGrid.onclick = () => {
@@ -1088,42 +1019,38 @@
     state.visibleCount = BASE_LIMIT;
     updateViewButtons();
     renderGrid();
+    updateCounts();
   };
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
     state.visibleCount = BASE_LIMIT;
     updateViewButtons();
     renderGrid();
+    updateCounts();
   };
-
-  if ($btnDrafts){
-    $btnDrafts.onclick = () => {
+  if ($btnViewDrafts){
+    $btnViewDrafts.onclick = () => {
       if (READONLY) return;
-      state.showDrafts = !state.showDrafts;
+      state.viewMode = "drafts";
       state.visibleCount = BASE_LIMIT;
-      updateDraftButton();
+      updateViewButtons();
       renderGrid();
       updateCounts();
     };
   }
 
-  // Load more / less
   $btnMore.onclick = () => {
     const totalFiltered = (state.items || []).filter(passFilters).length;
     state.visibleCount = Math.min(totalFiltered, (state.visibleCount || BASE_LIMIT) + 6);
     renderGrid();
   };
-
-  $btnLess.onclick = () => {
-    state.visibleCount = BASE_LIMIT;
-    renderGrid();
-  };
+  $btnLess.onclick = () => { state.visibleCount = BASE_LIMIT; renderGrid(); };
 
   function handleRefresh(){
     state.selectedPlatform = null;
     state.selectedStatus = null;
     state.visibleCount = BASE_LIMIT;
-    state.showDrafts = true; // al refrescar volvemos a mostrar todo
+    state.viewMode = "grid";
     $labelPlatforms.textContent = "All Platforms";
     $labelStatus.textContent = "All Status";
     closeDD();
@@ -1185,9 +1112,10 @@
         $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
         $btnMore.style.display = "none";
         $btnLess.style.display = "none";
-        if ($modalPager) $modalPager.style.display = "none";
+        $modalPager.style.display = "none";
         return;
       }
+
       state.dbId = data.dbId || null;
 
       state.items = (data.items || []).map((it, idx) => ({
@@ -1196,7 +1124,6 @@
         _id: it._id || it.id || it.pageId || it.notionId || `local-${idx}`
       }));
 
-      // aplicar orden guardado si existe
       loadSavedOrder();
 
       state.bio = data.bio || null;
@@ -1206,21 +1133,23 @@
       }catch(e){
         state.showBio = true;
       }
+
       setSwitch($switchBio, state.showBio);
       renderBio();
       renderMenus();
+
       state.visibleCount = BASE_LIMIT;
+            applyReadonlyRules();
+      updateViewButtons();
       renderGrid();
       updateCounts();
-      updateViewButtons();
-      updateDraftButton();
-      if ($modalPager) $modalPager.style.display = "none";
+      $modalPager.style.display = "none";
     }catch(e){
       console.error("Load error:", e);
       $grid.innerHTML = '<div class="card card-placeholder">Error loading grid</div>';
       $btnMore.style.display = "none";
       $btnLess.style.display = "none";
-      if ($modalPager) $modalPager.style.display = "none";
+      $modalPager.style.display = "none";
     }
   }
 
