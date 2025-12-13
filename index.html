@@ -48,8 +48,31 @@
     width:36px;height:36px;border:2px solid var(--border);background:#fff;
     border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
     font-size:16px;
+    position:relative;
   }
   .btn-icon .icon{width:18px;height:18px}
+
+  /* Active state dot (black) */
+  .btn-icon.has-dot::after{
+    content:"";
+    position:absolute;
+    width:7px;height:7px;border-radius:999px;
+    background:#111;
+    right:6px; bottom:6px;
+  }
+
+  /* Drag toolbar button: appears sliding in when custom order is ON */
+  .drag-btn{
+    opacity:0;
+    transform:translateX(8px);
+    pointer-events:none;
+    transition:opacity .16s ease, transform .16s ease;
+  }
+  body.custom-order .drag-btn{
+    opacity:1;
+    transform:translateX(0);
+    pointer-events:auto;
+  }
 
   /* View tabs (underline active, like your screenshot) */
   .view-tab{
@@ -152,6 +175,7 @@
   .card{
     position:relative;background:#f5f5f5;cursor:pointer;overflow:hidden;
     aspect-ratio:4/5;transition:opacity .2s,transform .2s;
+    touch-action: manipulation;
   }
   .card-img,.card-video{width:100%;height:100%;object-fit:cover;display:block;}
   .card-video{pointer-events:none}
@@ -317,13 +341,25 @@
   }
   .card .drag-handle:active{ cursor:grabbing; }
   .card .drag-handle svg{ width:16px; height:16px; display:block; }
-  .card .drag-handle svg path{ fill:#fff; }
+  .card .drag-handle svg *{ fill:#fff; }
 
   /* only visible when custom order is ON */
   .custom-order .card .drag-handle{ display:flex; }
 
-  /* Drag outline ONLY in custom order */
-  .custom-order .card.dragging{outline:2px solid #fff;outline-offset:-2px;cursor:grabbing;}
+  /* Drag visual feedback */
+  .custom-order .card.dragging{
+    z-index:999;
+    box-shadow:0 14px 40px rgba(0,0,0,.35);
+    outline:2px solid rgba(255,255,255,.85);
+    outline-offset:-2px;
+    cursor:grabbing;
+  }
+
+  /* Follow pointer transform (set by JS vars) */
+  .custom-order .card.dragging{
+    transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(1.03);
+    transition:none;
+  }
 </style>
 </head>
 
@@ -347,6 +383,19 @@
           <path d="M52.2841 61.6897H161.716C168.434 61.6897 173.875 70.0027 173.875 76.736C173.875 85.049 168.434 91.7823 161.716 91.7823H52.2841C45.5662 91.7823 40.125 83.4693 40.125 76.736C40.125 68.423 45.5662 61.6897 52.2841 61.6897Z"/>
           <path d="M52.2841 129.398H161.716C168.434 129.398 173.875 137.711 173.875 144.444C173.875 152.758 168.434 159.491 161.716 159.491H52.2841C45.5662 159.491 40.125 151.178 40.125 144.444C40.125 136.131 45.5662 129.398 52.2841 129.398Z"/>
           <path d="M52.2841 197.106H161.716C168.434 197.106 173.875 205.419 173.875 212.153C173.875 220.466 168.434 227.199 161.716 227.199H52.2841C45.5662 227.199 40.125 218.886 40.125 212.153C40.125 203.84 45.5662 197.106 52.2841 197.106Z"/>
+        </svg>
+      </button>
+
+      <!-- Drag mode icon beside Filter / Menu (slides in when enabled) -->
+      <button id="btnDragMode" class="btn-icon drag-btn" data-tip="Reorder" data-sub="Custom order mode" aria-label="Reorder">
+        <!-- 6-dot grip icon -->
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="9" cy="6" r="1.6"></circle>
+          <circle cx="15" cy="6" r="1.6"></circle>
+          <circle cx="9" cy="12" r="1.6"></circle>
+          <circle cx="15" cy="12" r="1.6"></circle>
+          <circle cx="9" cy="18" r="1.6"></circle>
+          <circle cx="15" cy="18" r="1.6"></circle>
         </svg>
       </button>
 
@@ -518,15 +567,15 @@
     `
   };
 
-  // Drag handle SVG (FASE 3)
+  // Drag handle SVG (grid) — 6-dot grip
   const ICON_SVG_DRAG_HANDLE = `
-    <svg viewBox="0 0 512 640" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g clip-path="url(#clip0_21_458)">
-        <path d="M428 96.7399C439.86 103.44 452.22 111.01 463.71 118.61C452.22 126.21 439.86 133.78 428 140.48C428 139.15 427.91 137.82 427.87 136.48L427.34 118.6L427.87 100.72C427.87 99.3799 427.95 98.0499 428 96.7199M415.6 49.3899C404.18 49.3899 391.96 59.9199 391.16 73.6199C390.547 82.2866 390.123 90.9532 389.89 99.6199H323C308.55 99.5722 294.33 103.233 281.699 110.252C269.068 117.271 258.45 127.414 250.86 139.71L118.65 352.24C114.455 359.034 108.586 364.639 101.605 368.517C94.6245 372.395 86.7655 374.417 78.78 374.39H19C13.9609 374.39 9.12816 376.392 5.56497 379.955C2.00178 383.518 0 388.351 0 393.39C0 398.429 2.00178 403.262 5.56497 406.825C9.12816 410.388 13.9609 412.39 19 412.39H78.78C93.2299 412.438 107.45 408.777 120.081 401.758C132.712 394.738 143.33 384.596 150.92 372.3L283.08 159.76C287.28 152.958 293.157 147.349 300.147 143.47C307.137 139.592 315.006 137.574 323 137.61H390C390.253 146.277 390.677 154.943 391.27 163.61C392.07 177.31 404.27 187.84 415.72 187.84C418.556 187.875 421.354 187.186 423.85 185.84C451.152 172.01 477.361 156.121 502.25 138.31C505.306 136.03 507.788 133.068 509.497 129.661C511.207 126.253 512.097 122.493 512.097 118.68C512.097 114.867 511.207 111.107 509.497 107.699C507.788 104.291 505.306 101.33 502.25 99.0499C477.364 81.2353 451.154 65.3458 423.85 51.5199C421.351 50.1721 418.549 49.4837 415.71 49.5199L415.6 49.3899Z" fill="black"/>
-        <path d="M428 371.52C439.86 378.22 452.22 385.79 463.71 393.39C452.22 400.99 439.86 408.56 428 415.26C428 413.94 427.91 412.61 427.87 411.26L427.34 393.38L427.87 375.5C427.87 374.17 427.95 372.84 428 371.5M245.61 292L223.24 328L250.81 372.34C258.41 384.636 269.038 394.775 281.678 401.787C294.318 408.8 308.546 412.45 323 412.39H390C390.254 421.057 390.677 429.723 391.27 438.39C392.07 452.09 404.27 462.62 415.71 462.62C418.549 462.656 421.351 461.968 423.85 460.62C451.127 446.761 477.306 430.842 502.16 413C505.216 410.72 507.698 407.759 509.407 404.351C511.117 400.943 512.007 397.183 512.007 393.37C512.007 389.557 511.117 385.797 509.407 382.389C507.698 378.981 505.216 376.02 502.16 373.74C477.272 355.929 451.063 340.04 423.76 326.21C421.259 324.867 418.459 324.179 415.62 324.21C404.2 324.21 391.98 334.74 391.18 348.44C390.567 357.107 390.144 365.773 389.91 374.44H323C315.015 374.467 307.156 372.445 300.175 368.567C293.194 364.689 287.326 359.085 283.13 352.29L245.61 292Z" fill="black"/>
-        <path d="M19 137.61H78.78C86.7655 137.582 94.6245 139.605 101.605 143.483C108.586 147.361 114.455 152.965 118.65 159.76L156.12 220L178.49 184L150.92 139.7C143.33 127.404 132.712 117.261 120.081 110.242C107.45 103.223 93.2299 99.5621 78.78 99.6098H19C13.9609 99.6098 9.12816 101.612 5.56497 105.175C2.00178 108.738 0 113.571 0 118.61C0 123.649 2.00178 128.482 5.56497 132.045C9.12816 135.608 13.9609 137.61 19 137.61Z" fill="black"/>
-      </g>
-      <defs><clipPath id="clip0_21_458"><rect width="512" height="640" fill="white"/></clipPath></defs>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="9" cy="6" r="1.6"></circle>
+      <circle cx="15" cy="6" r="1.6"></circle>
+      <circle cx="9" cy="12" r="1.6"></circle>
+      <circle cx="15" cy="12" r="1.6"></circle>
+      <circle cx="9" cy="18" r="1.6"></circle>
+      <circle cx="15" cy="18" r="1.6"></circle>
     </svg>
   `;
 
@@ -534,6 +583,7 @@
   const $grid = document.getElementById("grid");
   const $btnRefresh = document.getElementById("btnRefresh");
   const $btnFilter = document.getElementById("btnFilter");
+  const $btnDragMode = document.getElementById("btnDragMode");
   const $filtersRow = document.getElementById("filtersRow");
 
   const $ddPlatforms = document.getElementById("ddPlatforms");
@@ -615,7 +665,7 @@
     el.addEventListener("mousemove", moveTip);
     el.addEventListener("mouseleave", hideTip);
   }
-  [$btnRefresh,$btnFilter,$btnMenu,$btnViewGrid,$btnViewReels,$btnViewDrafts].forEach(b => b && bindTip(b));
+  [$btnRefresh,$btnFilter,$btnMenu,$btnDragMode,$btnViewGrid,$btnViewReels,$btnViewDrafts].forEach(b => b && bindTip(b));
 
   function formatDate(dateStr){
     if(!dateStr) return "";
@@ -629,9 +679,21 @@
     el.setAttribute("aria-checked", !!on);
   }
 
+  function updateToolbarDots(){
+    const filtersActive = !!state.selectedPlatform || !!state.selectedStatus || $filtersRow.classList.contains("open");
+    $btnFilter.classList.toggle("has-dot", filtersActive);
+
+    const menuActive = $menu.classList.contains("open") || state.customOrder || !state.showBio;
+    $btnMenu.classList.toggle("has-dot", menuActive);
+
+    // Drag icon is purely visible by CSS when custom-order; but we can also dot it if you ever want
+    // $btnDragMode.classList.toggle("has-dot", state.customOrder);
+  }
+
   function applyCustomOrderUI(){
     document.body.classList.toggle("custom-order", !!state.customOrder);
     if ($switchCustomOrder) setSwitch($switchCustomOrder, state.customOrder);
+    updateToolbarDots();
   }
 
   function toggleCustomOrder(){
@@ -709,6 +771,7 @@
     try{ localStorage.setItem("showBio", String(state.showBio)); }catch(e){}
     setSwitch($switchBio, state.showBio);
     renderBio();
+    updateToolbarDots();
   }
 
   function closeDD(){
@@ -761,6 +824,7 @@
         renderMenus();
         updateCounts();
         closeDD();
+        updateToolbarDots();
       };
     });
 
@@ -785,6 +849,7 @@
         renderMenus();
         updateCounts();
         closeDD();
+        updateToolbarDots();
       };
     });
 
@@ -972,16 +1037,21 @@
       const DRAG_THRESHOLD = 5;
 
       card.addEventListener("pointerdown", (e) => {
-        // Drag & drop SOLO cuando custom order está activo
         if (!state.customOrder) return;
         if (READONLY) return;
         if (e.button !== 0 && e.pointerType === "mouse") return;
+
+        // IMPORTANT: Only start reorder when the handle is pressed
+        const handle = e.target && e.target.closest(".drag-handle");
+        if (!handle) return;
 
         isPointerDown = true;
         pointerMoved = false;
         pointerId = e.pointerId;
         startX = e.clientX;
         startY = e.clientY;
+        card.style.setProperty("--dx", "0px");
+        card.style.setProperty("--dy", "0px");
         card.setPointerCapture(pointerId);
         card.classList.add("dragging");
       });
@@ -990,6 +1060,11 @@
         if (!isPointerDown) return;
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
+
+        // move the card visually with pointer
+        card.style.setProperty("--dx", dx + "px");
+        card.style.setProperty("--dy", dy + "px");
+
         if (!pointerMoved && Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD){
           pointerMoved = true;
         }
@@ -998,11 +1073,15 @@
       function endPointer(e){
         if (!isPointerDown) return;
         isPointerDown = false;
+
         card.classList.remove("dragging");
+        card.style.setProperty("--dx", "0px");
+        card.style.setProperty("--dy", "0px");
+
         try{ if (pointerId != null) card.releasePointerCapture(pointerId); }catch(_){}
         pointerId = null;
 
-        // Si no se movió, lo dejamos abrir modal normal
+        // if user just clicked the handle without moving: open modal
         if (!pointerMoved){
           if (!justReordered){
             openModal(item);
@@ -1025,11 +1104,15 @@
       card.addEventListener("pointerup", endPointer);
       card.addEventListener("pointercancel", endPointer);
 
-      // Cuando custom order está OFF: click normal abre modal
+      // When custom order is OFF: click normal opens modal
       if (!state.customOrder){
         card.onclick = () => openModal(item);
       } else {
-        card.onclick = null;
+        // In custom order: clicking the card (not handle) still opens modal
+        card.onclick = (e) => {
+          const handle = e.target && e.target.closest(".drag-handle");
+          if (!handle) openModal(item);
+        };
       }
     });
   }
@@ -1214,8 +1297,8 @@
     state.selectedStatus = null;
     state.visibleCount = BASE_LIMIT;
     state.viewMode = "grid";
-    $labelPlatforms.textContent = "All Platforms";
-    $labelStatus.textContent = "All Status";
+    document.getElementById("labelPlatforms").textContent = "All Platforms";
+    document.getElementById("labelStatus").textContent = "All Status";
     closeDD();
     load();
   }
@@ -1232,6 +1315,7 @@
     const isOpen = $filtersRow.classList.contains("open");
     if (isOpen) $filtersRow.classList.remove("open");
     else $filtersRow.classList.add("open");
+    updateToolbarDots();
   };
 
   $togglePlatforms.onclick = e => {
@@ -1240,6 +1324,7 @@
     const isOpen = $ddPlatforms.classList.contains("open");
     closeDD();
     if (!isOpen) $ddPlatforms.classList.add("open");
+    updateToolbarDots();
   };
 
   $toggleStatus.onclick = e => {
@@ -1248,18 +1333,21 @@
     const isOpen = $ddStatus.classList.contains("open");
     closeDD();
     if (!isOpen) $ddStatus.classList.add("open");
+    updateToolbarDots();
   };
 
   $btnMenu.onclick = e => {
     e.stopPropagation();
     closeDD();
     $menu.classList.toggle("open");
+    updateToolbarDots();
   };
 
   document.addEventListener("click", e => {
     if (!$menu.contains(e.target)) $menu.classList.remove("open");
     if (!$ddPlatforms.contains(e.target)) $ddPlatforms.classList.remove("open");
     if (!$ddStatus.contains(e.target)) $ddStatus.classList.remove("open");
+    updateToolbarDots();
   });
 
   $rowBio.onclick = toggleBio;
@@ -1270,6 +1358,11 @@
   }
   if ($switchCustomOrder){
     $switchCustomOrder.onclick = e => { e.stopPropagation(); toggleCustomOrder(); };
+  }
+
+  // Toolbar drag icon toggles custom order too (nice UX)
+  if ($btnDragMode){
+    $btnDragMode.onclick = () => toggleCustomOrder();
   }
 
   async function load(){
@@ -1321,6 +1414,7 @@
       updateViewButtons();
       renderGrid();
       updateCounts();
+      updateToolbarDots();
       $modalPager.style.display = "none";
     }catch(e){
       console.error("Load error:", e);
