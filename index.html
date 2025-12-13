@@ -14,19 +14,18 @@
     --container:936px; --gap:1px;
     --ui-font:13px; --ui-pad-y:8px; --ui-pad-x:12px; --ui-radius:14px;
     --dd-minw:140px;
+    --btnSize:36px;
+    --shiftX:46px; /* how much the (...) moves when drag-mode icon appears */
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
   .wrap{max-width:var(--container);margin:0 auto;padding:14px}
 
   /* === Unified SVG icons (toolbar) === */
-  .icon{
-    width:20px;height:20px;display:block;
-    color:#111;
-  }
+  .icon{width:20px;height:20px;display:block;color:#111}
   .icon *{ fill: currentColor; }
 
-  /* Toolbar layout (2 rows) */
+  /* Toolbar layout (3 rows) */
   .toolbar{
     display:flex;flex-direction:column;gap:10px;
     border-bottom:1px solid var(--border);
@@ -36,6 +35,7 @@
   .toolbar-row{
     display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     justify-content:center;
+    width:100%;
   }
   .toolbar-row.views{gap:22px}
 
@@ -44,78 +44,100 @@
     padding:var(--ui-pad-y) var(--ui-pad-x);font-weight:700;cursor:pointer;
     border-radius:10px;font-size:var(--ui-font);display:inline-flex;align-items:center;gap:8px;
   }
+
   .btn-icon{
-    width:36px;height:36px;border:2px solid var(--border);background:#fff;
+    width:var(--btnSize);height:var(--btnSize);
+    border:2px solid var(--border);background:#fff;
     border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
-    font-size:16px;
-    position:relative;
+    font-size:16px; position:relative;
   }
   .btn-icon .icon{width:18px;height:18px}
 
-  /* Active state dot (black) */
-  .btn-icon.has-dot::after{
-    content:"";
-    position:absolute;
-    width:7px;height:7px;border-radius:999px;
-    background:#111;
-    right:6px; bottom:6px;
-  }
-
-  /* Drag toolbar button: appears sliding in when custom order is ON */
-  .drag-btn{
-    opacity:0;
-    transform:translateX(8px);
-    pointer-events:none;
-    transition:opacity .16s ease, transform .16s ease;
-  }
-  body.custom-order .drag-btn{
-    opacity:1;
-    transform:translateX(0);
-    pointer-events:auto;
-  }
-
-  /* View tabs (underline active, like your screenshot) */
+  /* View tabs (underline active) */
   .view-tab{
-    width:44px;height:44px;
-    border:none;background:transparent;
+    width:44px;height:44px;border:none;background:transparent;
     display:inline-flex;align-items:center;justify-content:center;
-    cursor:pointer;
-    color:#111;
-    border-radius:12px;
-    position:relative;
+    cursor:pointer;color:#111;border-radius:12px;position:relative;
     transition:transform .12s ease, opacity .12s ease;
     opacity:.92;
   }
   .view-tab:hover{opacity:1;transform:translateY(-1px)}
   .view-tab.active::after{
-    content:"";
-    position:absolute;
-    left:50%;
-    transform:translateX(-50%);
-    bottom:2px;
-    width:22px;
-    height:2px;
-    background:#111;
-    border-radius:999px;
+    content:"";position:absolute;left:50%;transform:translateX(-50%);
+    bottom:2px;width:22px;height:2px;background:#111;border-radius:999px;
   }
   .view-tab .icon{width:20px;height:20px}
 
-  /* Filters */
-  .filters-row{
-    display:none;gap:10px;align-items:center;justify-content:center;
-    padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:10px;
+  /* Actions row wrapper (to allow the “magical” drag icon) */
+  .actions{
+    display:flex;align-items:center;gap:10px;
   }
-  .filters-row.open{display:flex}
+  .actions-right{
+    display:flex;align-items:center;gap:10px;
+    position:relative; /* for absolute drag-mode button */
+  }
+
+  /* Drag-mode icon that appears between Filter and (...) */
+  .btn-dragmode{
+    position:absolute;
+    left: calc(var(--btnSize) + 10px); /* after filter button (36px) + gap(10px) */
+    top:0;
+    width:var(--btnSize);height:var(--btnSize);
+    border:2px solid var(--border);background:#fff;border-radius:12px;
+    display:inline-flex;align-items:center;justify-content:center;
+    opacity:0;
+    pointer-events:none;
+    transform:translateX(-8px);
+    transition:opacity .16s ease, transform .16s ease;
+  }
+  .btn-dragmode .icon{width:18px;height:18px}
+
+  /* When drag mode ON: show drag icon + slide (...) to the right */
+  body.drag-mode .btn-dragmode{
+    opacity:1;
+    pointer-events:auto;
+    transform:translateX(0);
+  }
+  #btnMenu{
+    transition:transform .16s ease;
+  }
+  body.drag-mode #btnMenu{
+    transform:translateX(var(--shiftX));
+  }
+
+  /* Filters row (pills) - always visible and placed under actions row */
+  .filters-row{
+    display:flex;gap:10px;align-items:center;justify-content:center;
+    padding:2px 0 0;
+    width:100%;
+  }
 
   .dd{position:relative}
   .dd-toggle{
-    border:2px solid var(--border);background:#f6f6f6;padding:var(--ui-pad-y) var(--ui-pad-x);
-    min-width:var(--dd-minw);max-width:200px;cursor:pointer;display:inline-flex;
-    justify-content:space-between;align-items:center;gap:8px;border-radius:var(--ui-radius);
-    font-weight:600;font-size:var(--ui-font);white-space:nowrap
+    border:2px solid var(--border);
+    background:#f6f6f6;
+    padding:var(--ui-pad-y) var(--ui-pad-x);
+    min-width:var(--dd-minw);max-width:200px;
+    cursor:pointer;display:inline-flex;justify-content:space-between;align-items:center;gap:8px;
+    border-radius:var(--ui-radius);
+    font-weight:700;font-size:var(--ui-font);
+    white-space:nowrap;
+    position:relative; /* for the black dot */
   }
   .dd-toggle .label-clip{overflow:hidden;text-overflow:ellipsis}
   .dd-toggle .count{color:#999;margin-left:6px;font-size:12px;flex-shrink:0}
+  .dd-toggle .chev{margin-left:8px;opacity:.9}
+
+  /* The black dot indicator (top-right of each pill) */
+  .dd-toggle.has-selection::after{
+    content:"";
+    position:absolute;
+    right:10px;
+    top:8px;
+    width:7px;height:7px;border-radius:999px;
+    background:#111;
+  }
+
   .dd-menu{
     position:absolute;top:calc(100% + 8px);left:0;min-width:100%;background:#fff;border:1px solid var(--border);
     box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;z-index:30;border-radius:12px;padding:6px
@@ -135,7 +157,8 @@
   /* Menu */
   .menu{position:relative}
   .menu-panel{
-    position:absolute;right:0;top:calc(100% + 8px);min-width:260px;background:#fff;border:1px solid var(--border);
+    position:absolute;right:0;top:calc(100% + 8px);
+    min-width:280px;background:#fff;border:1px solid var(--border);
     box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;z-index:40;border-radius:12px;padding:10px
   }
   .menu.open .menu-panel{display:block}
@@ -148,20 +171,53 @@
   }
   .switch.on{background:#111}
   .switch.on::after{transform:translateX(20px)}
+
+  .menu-sep{height:1px;background:var(--border);margin:8px 0}
+  .menu-h{font-weight:800;font-size:12px;color:#6b7280;padding:6px 2px}
+  .menu-radio{
+    display:flex;gap:10px;align-items:center;padding:10px;border-radius:8px;cursor:pointer;
+  }
+  .menu-radio:hover{background:#f9fafb}
+  .menu-radio .r{
+    width:16px;height:16px;border:2px solid #ddd;border-radius:50%;position:relative;flex-shrink:0
+  }
+  .menu-radio.active .r{border-color:#111}
+  .menu-radio.active .r::after{
+    content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:7px;height:7px;background:#111;border-radius:50%;
+  }
+  .menu-radio .txt{font-weight:700;font-size:13px}
+  .menu-radio .sub{font-weight:600;font-size:12px;color:#6b7280;margin-top:2px}
+
+  .menu-actions{
+    display:none;
+    gap:8px;
+    padding:8px 2px 0;
+  }
+  body.drag-mode .menu-actions{display:flex}
+  .btn-mini{
+    border:1px solid var(--border);
+    background:#fff;
+    color:#111;
+    padding:8px 10px;
+    border-radius:999px;
+    font-weight:800;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .btn-mini.primary{
+    background:#111;color:#fff;border-color:#111;
+  }
+
   .menu-note{
     color:#6b7280;font-size:12px;padding:8px 0;margin-top:8px;
     border-top:1px solid var(--border);line-height:1.4;
   }
 
   /* Bio */
-  .bio{
-    display:none;border:1px solid var(--border);padding:14px;margin:10px 0 12px;border-radius:12px;
-  }
+  .bio{display:none;border:1px solid var(--border);padding:14px;margin:10px 0 12px;border-radius:12px;}
   .bio.visible{display:block}
-  .bio-top{
-    display:grid;grid-template-columns:56px 1fr;gap:10px;
-    align-items:center;margin-bottom:4px;
-  }
+  .bio-top{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;margin-bottom:4px;}
   .bio-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#eee}
   .bio-username{font-weight:800;font-size:16px}
   .bio-name{font-weight:600;margin-top:3px;font-size:14px;white-space:nowrap}
@@ -169,51 +225,35 @@
   .bio-link a{color:#1B4B91;text-decoration:none;font-weight:600;font-size:14px}
 
   /* Grid */
-  .grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0;
-  }
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-top:0;}
   .card{
     position:relative;background:#f5f5f5;cursor:pointer;overflow:hidden;
-    aspect-ratio:4/5;transition:opacity .2s,transform .2s;
-    touch-action: manipulation;
+    aspect-ratio:4/5;
+    transition:opacity .2s, transform .2s, box-shadow .2s;
   }
   .card-img,.card-video{width:100%;height:100%;object-fit:cover;display:block;}
   .card-video{pointer-events:none}
   .card-video::-webkit-media-controls-enclosure,
   .card-video::-webkit-media-controls{display:none !important;}
 
-  .badge{
-    position:absolute;top:6px;right:6px;z-index:2;display:flex;gap:6px;align-items:center;
-  }
-
-  /* Badges SVG (white, consistent) */
+  .badge{position:absolute;top:6px;right:6px;z-index:2;display:flex;gap:6px;align-items:center;}
   .badge-icon{
-    width:16px;
-    height:16px;
-    display:block;
-    color:#fff; /* all white */
+    width:16px;height:16px;display:block;color:#fff;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
   }
-  .badge-icon *{
-    fill: currentColor;
-    stroke: currentColor;
-  }
+  .badge-icon *{fill: currentColor;stroke: currentColor;}
 
   .card-overlay{
     position:absolute;bottom:0;left:0;right:0;
     background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
     padding:8px;display:flex;justify-content:space-between;align-items:flex-end;
-    color:#fff;
-    opacity:0;transition: opacity .18s ease;
+    color:#fff;opacity:0;transition: opacity .18s ease;
   }
   .card:hover .card-overlay{opacity:1}
   .card-title{font-weight:600;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.5);}
   .card-title:empty{display:none;}
   .card-date{font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5);}
-  .card-placeholder{
-    display:flex;align-items:center;justify-content:center;
-    color:#aaa;font-size:14px;font-weight:500;
-  }
+  .card-placeholder{display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;font-weight:500;}
 
   /* Skeleton */
   .card.skel{background:#f3f4f6;cursor:default}
@@ -224,33 +264,48 @@
   }
   @keyframes pulse{0%{transform:translateX(-20%);}50%{transform:translateX(0);}100%{transform:translateX(20%);} }
 
-  /* Modal */
-  .modal{
-    position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
-    align-items:center;justify-content:center;z-index:50;padding:20px;
+  /* ===== Drag mode visuals (feel like “grabbing the card”) ===== */
+  body.drag-mode .card{cursor:grab}
+  body.drag-mode .card.dragging{
+    cursor:grabbing;
+    transform:scale(1.03);
+    box-shadow:0 14px 40px rgba(0,0,0,.25);
+    z-index:5;
   }
+  body.drag-mode .card.drag-over{
+    outline:2px solid #111;
+    outline-offset:-2px;
+  }
+
+  /* Card drag handle overlay (only in drag-mode) */
+  .card .drag-handle{
+    position:absolute;left:8px;top:8px;
+    width:26px;height:26px;display:none;
+    align-items:center;justify-content:center;
+    border-radius:10px;
+    background:rgba(0,0,0,.55);
+    backdrop-filter: blur(6px);
+    z-index:3;
+    cursor:grab;
+    user-select:none;
+  }
+  .card .drag-handle:active{cursor:grabbing;}
+  .card .drag-handle svg{width:16px;height:16px;display:block;}
+  .card .drag-handle svg path{fill:#fff;}
+  body.drag-mode .card .drag-handle{display:flex;}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
   .modal.open{display:flex}
   .modal-close{
     position:absolute;top:20px;right:20px;width:40px;height:40px;
     background:rgba(255,255,255,0.9);border:none;border-radius:50%;cursor:pointer;
     font-size:24px;font-weight:bold;display:flex;align-items:center;justify-content:center;color:#111;
   }
-  .modal-content{
-    max-width:90vw;max-height:90vh;display:flex;
-    flex-direction:column;align-items:center;gap:12px;
-  }
-  .media-wrap{
-    position:relative;max-width:90vw;max-height:80vh;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .modal-media{
-    max-width:90vw;max-height:80vh;object-fit:contain;
-    box-shadow:0 8px 32px rgba(0,0,0,.4);
-  }
-  .modal-caption{
-    color:#fff;font-size:14px;line-height:1.5;
-    max-width:600px;text-align:center;padding:0 20px;
-  }
+  .modal-content{max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .media-wrap{position:relative;max-width:90vw;max-height:80vh;display:flex;align-items:center;justify-content:center;}
+  .modal-media{max-width:90vw;max-height:80vh;object-fit:contain;box-shadow:0 8px 32px rgba(0,0,0,.4);}
+  .modal-caption{color:#fff;font-size:14px;line-height:1.5;max-width:600px;text-align:center;padding:0 20px;}
 
   .nav-btn{
     position:absolute;top:50%;transform:translateY(-50%);
@@ -285,19 +340,9 @@
 
   /* Tooltip (clarito tipo Notion) */
   .tip{
-    position:fixed;
-    z-index:9999;
-    display:none;
-    pointer-events:none;
-    background:#fff;
-    border:1px solid #e6e7eb;
-    box-shadow:0 10px 30px rgba(0,0,0,.10);
-    border-radius:10px;
-    padding:8px 10px;
-    font-size:12px;
-    color:#111;
-    line-height:1.2;
-    max-width:220px;
+    position:fixed;z-index:9999;display:none;pointer-events:none;
+    background:#fff;border:1px solid #e6e7eb;box-shadow:0 10px 30px rgba(0,0,0,.10);
+    border-radius:10px;padding:8px 10px;font-size:12px;color:#111;line-height:1.2;max-width:220px;
   }
   .tip.show{display:block}
   .tip .t{font-weight:600}
@@ -317,126 +362,119 @@
 
   /* Readonly */
   .ro .menu { display:none; }
-
-  /* =========================
-     FASE 3 — Custom order mode
-     ========================= */
-  .card{ position:relative; }
-
-  .card .drag-handle{
-    position:absolute;
-    left:8px;
-    top:8px;
-    width:26px;
-    height:26px;
-    display:none;              /* hidden by default */
-    align-items:center;
-    justify-content:center;
-    border-radius:10px;
-    background:rgba(0,0,0,.55);
-    backdrop-filter: blur(6px);
-    z-index:3;
-    cursor:grab;
-    user-select:none;
-  }
-  .card .drag-handle:active{ cursor:grabbing; }
-  .card .drag-handle svg{ width:16px; height:16px; display:block; }
-  .card .drag-handle svg *{ fill:#fff; }
-
-  /* only visible when custom order is ON */
-  .custom-order .card .drag-handle{ display:flex; }
-
-  /* Drag visual feedback */
-  .custom-order .card.dragging{
-    z-index:999;
-    box-shadow:0 14px 40px rgba(0,0,0,.35);
-    outline:2px solid rgba(255,255,255,.85);
-    outline-offset:-2px;
-    cursor:grabbing;
-  }
-
-  /* Follow pointer transform (set by JS vars) */
-  .custom-order .card.dragging{
-    transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(1.03);
-    transition:none;
-  }
 </style>
 </head>
 
 <body>
 <main class="wrap">
   <div class="toolbar">
-    <!-- ROW 1 -->
+    <!-- ROW 1: actions -->
     <div class="toolbar-row">
-      <button id="btnRefresh" class="btn" data-tip="Refresh" data-sub="Update content">
-        <animated-icons id="aiRefresh"
-          src="https://animatedicons.co/get-icon?name=Restart&style=minimalistic&token=13c130bf-0940-48c2-92e3-16b6ffe3b232"
-          trigger="click"
-          attributes='{"variationThumbColour":"#FFFFFF","variationName":"Normal","variationNumber":1,"numberOfGroups":1,"backgroundIsGroup":false,"strokeWidth":1.48,"defaultColours":{"group-1":"#FFFFFFFF","background":"#FFFFFF"}}'
-          height="18" width="18"></animated-icons>
-        Refresh
-      </button>
-
-      <!-- Filter icon -->
-      <button id="btnFilter" class="btn-icon" data-tip="Filter" data-sub="Platforms & status" aria-label="Filter">
-        <svg class="icon" viewBox="0 0 214 325" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M52.2841 61.6897H161.716C168.434 61.6897 173.875 70.0027 173.875 76.736C173.875 85.049 168.434 91.7823 161.716 91.7823H52.2841C45.5662 91.7823 40.125 83.4693 40.125 76.736C40.125 68.423 45.5662 61.6897 52.2841 61.6897Z"/>
-          <path d="M52.2841 129.398H161.716C168.434 129.398 173.875 137.711 173.875 144.444C173.875 152.758 168.434 159.491 161.716 159.491H52.2841C45.5662 159.491 40.125 151.178 40.125 144.444C40.125 136.131 45.5662 129.398 52.2841 129.398Z"/>
-          <path d="M52.2841 197.106H161.716C168.434 197.106 173.875 205.419 173.875 212.153C173.875 220.466 168.434 227.199 161.716 227.199H52.2841C45.5662 227.199 40.125 218.886 40.125 212.153C40.125 203.84 45.5662 197.106 52.2841 197.106Z"/>
-        </svg>
-      </button>
-
-      <!-- Drag mode icon beside Filter / Menu (slides in when enabled) -->
-      <button id="btnDragMode" class="btn-icon drag-btn" data-tip="Reorder" data-sub="Custom order mode" aria-label="Reorder">
-        <!-- 6-dot grip icon -->
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="9" cy="6" r="1.6"></circle>
-          <circle cx="15" cy="6" r="1.6"></circle>
-          <circle cx="9" cy="12" r="1.6"></circle>
-          <circle cx="15" cy="12" r="1.6"></circle>
-          <circle cx="9" cy="18" r="1.6"></circle>
-          <circle cx="15" cy="18" r="1.6"></circle>
-        </svg>
-      </button>
-
-      <div class="menu" id="menu">
-        <!-- Menu icon (3 dots) -->
-        <button id="btnMenu" class="btn-icon" data-tip="Options" data-sub="Bio & settings" aria-label="Options">
-          <svg class="icon" viewBox="0 0 90 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M11.875 23.75C18.4334 23.75 23.75 18.4334 23.75 11.875C23.75 5.31662 18.4334 0 11.875 0C5.31662 0 0 5.31662 0 11.875C0 18.4334 5.31662 23.75 11.875 23.75Z"/>
-            <path d="M78.125 23.75C84.6834 23.75 90 18.4334 90 11.875C90 5.31662 84.6834 0 78.125 0C71.5666 0 66.25 5.31662 66.25 11.875C66.25 18.4334 71.5666 23.75 78.125 23.75Z"/>
-            <path d="M45 23.75C51.5584 23.75 56.875 18.4334 56.875 11.875C56.875 5.31662 51.5584 0 45 0C38.4416 0 33.125 5.31662 33.125 11.875C33.125 18.4334 38.4416 23.75 45 23.75Z"/>
-          </svg>
+      <div class="actions">
+        <button id="btnRefresh" class="btn" data-tip="Refresh" data-sub="Update content">
+          <animated-icons id="aiRefresh"
+            src="https://animatedicons.co/get-icon?name=Restart&style=minimalistic&token=13c130bf-0940-48c2-92e3-16b6ffe3b232"
+            trigger="click"
+            attributes='{"variationThumbColour":"#FFFFFF","variationName":"Normal","variationNumber":1,"numberOfGroups":1,"backgroundIsGroup":false,"strokeWidth":1.48,"defaultColours":{"group-1":"#FFFFFFFF","background":"#FFFFFF"}}'
+            height="18" width="18"></animated-icons>
+          Refresh
         </button>
 
-        <div class="menu-panel">
-          <div class="menu-row" id="rowBio">
-            <span style="font-weight:600">Show Bio</span>
-            <div id="switchBio" class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-          </div>
+        <div class="actions-right">
+          <!-- Filter icon -->
+          <button id="btnFilter" class="btn-icon" data-tip="Filter" data-sub="Platforms & status" aria-label="Filter">
+            <svg class="icon" viewBox="0 0 214 325" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M52.2841 61.6897H161.716C168.434 61.6897 173.875 70.0027 173.875 76.736C173.875 85.049 168.434 91.7823 161.716 91.7823H52.2841C45.5662 91.7823 40.125 83.4693 40.125 76.736C40.125 68.423 45.5662 61.6897 52.2841 61.6897Z"/>
+              <path d="M52.2841 129.398H161.716C168.434 129.398 173.875 137.711 173.875 144.444C173.875 152.758 168.434 159.491 161.716 159.491H52.2841C45.5662 159.491 40.125 151.178 40.125 144.444C40.125 136.131 45.5662 129.398 52.2841 129.398Z"/>
+              <path d="M52.2841 197.106H161.716C168.434 197.106 173.875 205.419 173.875 212.153C173.875 220.466 168.434 227.199 161.716 227.199H52.2841C45.5662 227.199 40.125 218.886 40.125 212.153C40.125 203.84 45.5662 197.106 52.2841 197.106Z"/>
+            </svg>
+          </button>
 
-          <div class="menu-row" id="rowCustomOrder">
-            <span style="font-weight:600">Custom order</span>
-            <div id="switchCustomOrder" class="switch" role="switch" aria-checked="false" tabindex="0"></div>
-          </div>
+          <!-- Drag-mode icon (appears only when drag-mode is ON) -->
+          <button id="btnDragMode" class="btn-dragmode" data-tip="Drag mode" data-sub="Reorder posts" aria-label="Drag mode">
+            <svg class="icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M192 64h128v64H192V64zm0 160h128v64H192v-64zm0 160h128v64H192v-64z"/>
+            </svg>
+          </button>
 
-          <div class="menu-note">
-            Want to customize your bio or story highlights? Visit your account page and edit your widget settings there.
+          <div class="menu" id="menu">
+            <!-- Menu icon (3 dots) -->
+            <button id="btnMenu" class="btn-icon" data-tip="Options" data-sub="Bio & order" aria-label="Options">
+              <svg class="icon" viewBox="0 0 90 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M11.875 23.75C18.4334 23.75 23.75 18.4334 23.75 11.875C23.75 5.31662 18.4334 0 11.875 0C5.31662 0 0 5.31662 0 11.875C0 18.4334 5.31662 23.75 11.875 23.75Z"/>
+                <path d="M78.125 23.75C84.6834 23.75 90 18.4334 90 11.875C90 5.31662 84.6834 0 78.125 0C71.5666 0 66.25 5.31662 66.25 11.875C66.25 18.4334 71.5666 23.75 78.125 23.75Z"/>
+                <path d="M45 23.75C51.5584 23.75 56.875 18.4334 56.875 11.875C56.875 5.31662 51.5584 0 45 0C38.4416 0 33.125 5.31662 33.125 11.875C33.125 18.4334 38.4416 23.75 45 23.75Z"/>
+              </svg>
+            </button>
+
+            <div class="menu-panel">
+              <!-- Bio toggle -->
+              <div class="menu-row" id="rowBio">
+                <span style="font-weight:700">Show Bio</span>
+                <div id="switchBio" class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
+              </div>
+
+              <div class="menu-sep"></div>
+              <div class="menu-h">ORDER MODE</div>
+
+              <div id="optDate" class="menu-radio">
+                <div class="r"></div>
+                <div>
+                  <div class="txt">Order by date</div>
+                  <div class="sub">Sorted by publish date</div>
+                </div>
+              </div>
+
+              <div id="optCustom" class="menu-radio">
+                <div class="r"></div>
+                <div>
+                  <div class="txt">Custom order</div>
+                  <div class="sub">Use your saved order</div>
+                </div>
+              </div>
+
+              <!-- Save / Cancel only when drag-mode is ON -->
+              <div class="menu-actions" id="menuActions">
+                <button id="btnCancelOrder" class="btn-mini">Cancel</button>
+                <button id="btnSaveOrder" class="btn-mini primary">Save</button>
+              </div>
+
+              <div class="menu-note">
+                Custom order is saved in the widget (not in Notion).
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ROW 2 (tabs) -->
+    <!-- ROW 2: filter pills -->
+    <div id="filtersRow" class="filters-row" aria-label="Filters">
+      <div class="dd" id="ddPlatforms">
+        <button class="dd-toggle" id="togglePlatforms">
+          <span class="label-clip" id="labelPlatforms">All Platforms</span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="dd-menu" id="menuPlatforms"></div>
+      </div>
+
+      <div class="dd" id="ddStatus">
+        <button class="dd-toggle" id="toggleStatus">
+          <span class="label-clip" id="labelStatus">All Status</span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="dd-menu" id="menuStatus"></div>
+      </div>
+    </div>
+
+    <!-- ROW 3: tabs -->
     <div class="toolbar-row views">
-      <!-- Grid -->
       <button id="btnViewGrid" class="view-tab active" data-tip="Grid" data-sub="Published content grid" aria-label="Grid view">
         <svg class="icon" viewBox="0 0 232 238" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M197.075 0H34.7727C15.5826 0.0222236 0.0222545 15.9334 0 35.5556V201.512C0.0217343 221.134 15.5826 237.045 34.7727 237.067H197.075C216.265 237.045 231.826 221.134 231.848 201.512V35.5556C231.826 15.9334 216.265 0.0227556 197.075 0ZM92.7347 142.234V94.8338H139.113V142.245L92.7347 142.234ZM139.113 165.934V213.356H92.7347V165.945L139.113 165.934ZM23.1892 94.8338H69.5455V142.245L23.1892 142.234V94.8338ZM92.7347 71.1339V23.7113H139.113L139.102 71.1225L92.7347 71.1339ZM162.291 94.8338H208.659V142.245H162.291V94.8338ZM208.659 35.5669L208.648 71.1225H162.28L162.291 23.7113H197.064C203.464 23.7113 208.659 29.0113 208.659 35.5558V35.5669ZM34.7727 23.7113H69.5455V71.1225H23.1892V35.5556C23.1892 29.0111 28.3723 23.7113 34.7727 23.7113ZM23.189 201.512V165.945H69.5452V213.367L34.7724 213.356C28.372 213.356 23.189 208.056 23.189 201.512ZM197.075 213.367H162.302V165.945H208.669V201.512H208.659C208.659 208.056 203.475 213.356 197.075 213.356L197.075 213.367Z"/>
         </svg>
       </button>
 
-      <!-- Reels -->
       <button id="btnViewReels" class="view-tab" data-tip="Reels" data-sub="Videos only" aria-label="Reels view">
         <svg class="icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M502.08 127.37C492 70.4601 441.54 20.0001 384.63 9.92006H384.44C344.75 3.28007 302.74 0.0500649 256 6.48682e-05C209.26 -0.0499351 167.24 3.29007 127.56 9.89007H127.37C70.47 20.0001 20 70.4701 9.93 127.37C9.92431 127.433 9.92431 127.497 9.93 127.56C3.3 167.24 0.0599961 209.24 -3.85515e-06 256C-0.0600039 302.76 3.3 344.79 9.89 384.45C9.88533 384.51 9.88533 384.57 9.89 384.63C20 441.53 70.47 492 127.37 502.08H127.56C167.26 508.68 209.27 511.92 256.03 511.97C302.79 512.02 344.75 508.68 384.45 502.08H384.64C441.54 492 492 441.53 502.08 384.63V384.44C508.71 344.77 512 302.76 512 256C512 209.24 508.71 167.26 502.11 127.58L502.08 127.37ZM464.64 378.11C457.32 419.33 419.34 457.31 378.12 464.64C340.52 470.89 300.57 474 256 474C211.43 474 171.47 470.89 133.87 464.64C92.65 457.31 54.67 419.33 47.34 378.1C41.12 340.55 38.06 300.6 38 256C37.8795 222.467 39.9237 188.96 44.12 155.69C136.6 146.24 193.37 143.66 255.64 143.6C332.53 143.67 402.12 147.6 467.87 155.75C472.07 189 474.118 222.486 474 256C474 300.58 470.89 340.53 464.64 378.11Z"/>
@@ -444,30 +482,11 @@
         </svg>
       </button>
 
-      <!-- Drafts -->
       <button id="btnViewDrafts" class="view-tab" data-tip="Drafts" data-sub="Status = Draft" aria-label="Drafts view">
         <svg class="icon" viewBox="0 0 69 69" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M0.000900269 16.664C0.000900269 7.4609 7.4697 0 16.6809 0H52.1969C61.4078 0 68.8769 7.4609 68.8769 16.664C68.8769 18.0468 67.7597 19.1718 66.3691 19.1718H2.5101C1.1273 19.1718 0.00230026 18.0468 0.00230026 16.664H0.000900269ZM64.7119 29.586C67.0088 29.586 68.876 31.4532 68.876 33.7579V52.2029C68.876 61.406 61.4072 68.8669 52.196 68.8669H16.68C7.4691 68.8669 0 61.406 0 52.2029V33.7579C0 31.4532 1.8672 29.586 4.1719 29.586H15.7269C18.0238 29.586 19.805 31.5626 20.9066 33.5782C22.3285 36.1563 25.0707 37.9063 28.2269 37.9063H40.6649C43.8133 37.9063 46.5633 36.1563 47.9774 33.5782C49.0868 31.5626 50.8602 29.586 53.1649 29.586H64.7119Z"/>
         </svg>
       </button>
-    </div>
-  </div>
-
-  <div id="filtersRow" class="filters-row">
-    <div class="dd" id="ddPlatforms">
-      <button class="dd-toggle" id="togglePlatforms">
-        <span class="label-clip" id="labelPlatforms">All Platforms</span>
-        <span><span id="countPlatforms" class="count"></span> ▾</span>
-      </button>
-      <div class="dd-menu" id="menuPlatforms"></div>
-    </div>
-
-    <div class="dd" id="ddStatus">
-      <button class="dd-toggle" id="toggleStatus">
-        <span class="label-clip" id="labelStatus">All Status</span>
-        <span><span id="countStatus" class="count"></span> ▾</span>
-      </button>
-      <div class="dd-menu" id="menuStatus"></div>
     </div>
   </div>
 
@@ -531,7 +550,8 @@
     bio: null,
     showBio: true,
     viewMode: "grid", // "grid" | "reels" | "drafts"
-    customOrder: false, // FASE 3
+    orderMode: "date", // "date" | "custom"
+    dragMode: false,   // true only while actively reordering
     modalAssets: [],
     modalIndex: 0,
     modalCaption: "",
@@ -567,15 +587,10 @@
     `
   };
 
-  // Drag handle SVG (grid) — 6-dot grip
+  // Drag handle SVG (overlay inside each card)
   const ICON_SVG_DRAG_HANDLE = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="9" cy="6" r="1.6"></circle>
-      <circle cx="15" cy="6" r="1.6"></circle>
-      <circle cx="9" cy="12" r="1.6"></circle>
-      <circle cx="15" cy="12" r="1.6"></circle>
-      <circle cx="9" cy="18" r="1.6"></circle>
-      <circle cx="15" cy="18" r="1.6"></circle>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 5H11V7H9V5ZM13 5H15V7H13V5ZM9 10H11V12H9V10ZM13 10H15V12H13V10ZM9 15H11V17H9V15ZM13 15H15V17H13V15Z" />
     </svg>
   `;
 
@@ -584,27 +599,26 @@
   const $btnRefresh = document.getElementById("btnRefresh");
   const $btnFilter = document.getElementById("btnFilter");
   const $btnDragMode = document.getElementById("btnDragMode");
-  const $filtersRow = document.getElementById("filtersRow");
 
   const $ddPlatforms = document.getElementById("ddPlatforms");
   const $togglePlatforms = document.getElementById("togglePlatforms");
   const $menuPlatforms = document.getElementById("menuPlatforms");
   const $labelPlatforms = document.getElementById("labelPlatforms");
-  const $countPlatforms = document.getElementById("countPlatforms");
 
   const $ddStatus = document.getElementById("ddStatus");
   const $toggleStatus = document.getElementById("toggleStatus");
   const $menuStatus = document.getElementById("menuStatus");
   const $labelStatus = document.getElementById("labelStatus");
-  const $countStatus = document.getElementById("countStatus");
 
   const $menu = document.getElementById("menu");
   const $btnMenu = document.getElementById("btnMenu");
   const $rowBio = document.getElementById("rowBio");
   const $switchBio = document.getElementById("switchBio");
 
-  const $rowCustomOrder = document.getElementById("rowCustomOrder");
-  const $switchCustomOrder = document.getElementById("switchCustomOrder");
+  const $optDate = document.getElementById("optDate");
+  const $optCustom = document.getElementById("optCustom");
+  const $btnCancelOrder = document.getElementById("btnCancelOrder");
+  const $btnSaveOrder = document.getElementById("btnSaveOrder");
 
   const $bio = document.getElementById("bio");
   const $bioUsername = document.getElementById("bioUsername");
@@ -679,192 +693,30 @@
     el.setAttribute("aria-checked", !!on);
   }
 
-  function updateToolbarDots(){
-    const filtersActive = !!state.selectedPlatform || !!state.selectedStatus || $filtersRow.classList.contains("open");
-    $btnFilter.classList.toggle("has-dot", filtersActive);
-
-    const menuActive = $menu.classList.contains("open") || state.customOrder || !state.showBio;
-    $btnMenu.classList.toggle("has-dot", menuActive);
-
-    // Drag icon is purely visible by CSS when custom-order; but we can also dot it if you ever want
-    // $btnDragMode.classList.toggle("has-dot", state.customOrder);
+  function applyDragModeUI(){
+    document.body.classList.toggle("drag-mode", !!state.dragMode);
   }
 
-  function applyCustomOrderUI(){
-    document.body.classList.toggle("custom-order", !!state.customOrder);
-    if ($switchCustomOrder) setSwitch($switchCustomOrder, state.customOrder);
-    updateToolbarDots();
+  function updateOrderMenuUI(){
+    $optDate.classList.toggle("active", state.orderMode === "date");
+    $optCustom.classList.toggle("active", state.orderMode === "custom");
   }
 
-  function toggleCustomOrder(){
-    if (READONLY) return;
-    state.customOrder = !state.customOrder;
-    try{ localStorage.setItem("customOrder", String(state.customOrder)); }catch(e){}
-    applyCustomOrderUI();
-    renderGrid();
-  }
-
-  function renderSkeleton(){
-    const n = 9;
-    $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
-  }
-
-  function passPlatform(it){
-    return !state.selectedPlatform || it.platform === state.selectedPlatform;
-  }
-  function passStatus(it){
-    return !state.selectedStatus || it.status === state.selectedStatus;
-  }
-
-  function isDraft(it){
-    if (!it || !it.status) return false;
-    return it.status === "Draft" || it.status === "Borrador";
-  }
-
-  function passViewMode(it){
-    // readonly: nunca mostrar drafts
-    if (READONLY && isDraft(it)) return false;
-
-    if (state.viewMode === "reels"){
-      // solo videos, NO drafts
-      return !!it.isVideo && !isDraft(it);
-    }
-    if (state.viewMode === "drafts"){
-      // solo drafts
-      return isDraft(it);
-    }
-    // grid: solo NO drafts
-    return !isDraft(it);
-  }
-
-  function passFilters(it){
-    return passPlatform(it) && passStatus(it) && passViewMode(it);
-  }
-
-  function renderBio(){
-    const b = state.bio;
-    if (!b || !state.showBio){
-      $bio.classList.remove("visible");
-      $bio.setAttribute("aria-hidden","true");
-      return;
-    }
-    $bioUsername.textContent = b.username || "";
-    $bioName.textContent = b.name || "";
-    $bioLines.textContent = (b.textLines || []).join("\n");
-    const cleanUrl = (b.url || "").replace(/^https?:\/\//,"");
-    $bioUrl.textContent = cleanUrl || "";
-    $bioUrl.href = b.url || "#";
-
-    if (b.avatar){
-      $bioAvatar.src = b.avatar;
-      $bioAvatar.style.display = "block";
-    } else {
-      $bioAvatar.style.display = "none";
-    }
-
-    $bio.classList.add("visible");
-    $bio.setAttribute("aria-hidden","false");
-  }
-
-  function toggleBio(){
-    state.showBio = !state.showBio;
-    try{ localStorage.setItem("showBio", String(state.showBio)); }catch(e){}
-    setSwitch($switchBio, state.showBio);
-    renderBio();
-    updateToolbarDots();
-  }
-
-  function closeDD(){
+  function closeDropdowns(){
     $ddPlatforms.classList.remove("open");
     $ddStatus.classList.remove("open");
   }
-
-  function renderMenus(){
-    const items = state.items || [];
-
-    const platCounts = {};
-    const statusCounts = {};
-
-    items.forEach(it => {
-      if (it.platform){
-        platCounts[it.platform] = (platCounts[it.platform] || 0) + 1;
-      }
-      if (it.status){
-        statusCounts[it.status] = (statusCounts[it.status] || 0) + 1;
-      }
-    });
-
-    const platforms = Object.keys(platCounts).sort((a,b) => platCounts[b]-platCounts[a]);
-    const statuses  = Object.keys(statusCounts).sort((a,b) => statusCounts[b]-statusCounts[a]);
-
-    const filteredByStatus = items.filter(passStatus);
-    const filteredByPlatform = items.filter(passPlatform);
-
-    const allPlatCount = filteredByStatus.length;
-    const allStatusCount = filteredByPlatform.length;
-
-    const platMenuItems = ["All Platforms", ...platforms];
-    $menuPlatforms.innerHTML = platMenuItems.map(name => {
-      const count = name === "All Platforms" ? allPlatCount : (platCounts[name] || 0);
-      const active = (name === "All Platforms" && !state.selectedPlatform) || state.selectedPlatform === name;
-      return `<div class="dd-item ${active?"active":""}" data-v="${name}">
-        <div class="radio"></div>
-        <div class="label">${name}</div>
-        <div class="count">${count}</div>
-      </div>`;
-    }).join("");
-
-    Array.from($menuPlatforms.children).forEach(el => {
-      el.onclick = () => {
-        const val = el.getAttribute("data-v");
-        state.visibleCount = BASE_LIMIT;
-        state.selectedPlatform = (val === "All Platforms") ? null : val;
-        $labelPlatforms.textContent = val;
-        renderGrid();
-        renderMenus();
-        updateCounts();
-        closeDD();
-        updateToolbarDots();
-      };
-    });
-
-    const statusMenuItems = ["All Status", ...statuses];
-    $menuStatus.innerHTML = statusMenuItems.map(name => {
-      const count = name === "All Status" ? allStatusCount : (statusCounts[name] || 0);
-      const active = (name === "All Status" && !state.selectedStatus) || state.selectedStatus === name;
-      return `<div class="dd-item ${active?"active":""}" data-v="${name}">
-        <div class="radio"></div>
-        <div class="label">${name}</div>
-        <div class="count">${count}</div>
-      </div>`;
-    }).join("");
-
-    Array.from($menuStatus.children).forEach(el => {
-      el.onclick = () => {
-        const val = el.getAttribute("data-v");
-        state.visibleCount = BASE_LIMIT;
-        state.selectedStatus = (val === "All Status") ? null : val;
-        $labelStatus.textContent = val;
-        renderGrid();
-        renderMenus();
-        updateCounts();
-        closeDD();
-        updateToolbarDots();
-      };
-    });
-
-    $labelPlatforms.textContent = state.selectedPlatform || "All Platforms";
-    $labelStatus.textContent = state.selectedStatus || "All Status";
+  function closeMenu(){
+    $menu.classList.remove("open");
   }
 
-  function updateCounts(){
-    const filtered = (state.items || []).filter(passFilters);
-    const count = filtered.length;
-    $countPlatforms.textContent = state.selectedPlatform ? `(${count})` : "";
-    $countStatus.textContent = state.selectedStatus ? `(${count})` : "";
+  function setPillDots(){
+    // dot should appear only when a filter is selected (not “All …”)
+    $togglePlatforms.classList.toggle("has-selection", !!state.selectedPlatform);
+    $toggleStatus.classList.toggle("has-selection", !!state.selectedStatus);
   }
 
-  // Persist order in localStorage
+  // Persist order in localStorage (per db)
   function getOrderKey(){
     if (!state.dbId) return null;
     return `igGridOrder:${state.dbId}`;
@@ -899,14 +751,36 @@
   }
 
   let justReordered = false;
+  let snapshotBeforeDrag = null;
+
+  function takeSnapshot(){
+    snapshotBeforeDrag = (state.items || []).map(it => ({ id: it._id, order: it._order }));
+  }
+  function restoreSnapshot(){
+    if (!snapshotBeforeDrag) return;
+    const map = new Map(snapshotBeforeDrag.map(x => [x.id, x.order]));
+    (state.items || []).forEach(it => {
+      if (map.has(it._id)) it._order = map.get(it._id);
+    });
+    snapshotBeforeDrag = null;
+  }
 
   function applyOrderNumbers(arr){
     arr.forEach((it, i) => { it._order = i; });
   }
 
   function resortItems(){
+    // if date mode: sort pinned first, then publishDate desc, fallback _order
+    // if custom mode: sort pinned first, then _order
     state.items = (state.items || []).slice().sort((a,b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+
+      if (state.orderMode === "date"){
+        const da = a.publishDate ? new Date(a.publishDate).getTime() : 0;
+        const db = b.publishDate ? new Date(b.publishDate).getTime() : 0;
+        if (db !== da) return db - da;
+      }
+
       const oa = typeof a._order === "number" ? a._order : 0;
       const ob = typeof b._order === "number" ? b._order : 0;
       return oa - ob;
@@ -919,17 +793,143 @@
     const fromIndex = arr.findIndex(x => x._id === sourceId);
     const toIndex = arr.findIndex(x => x._id === targetId);
     if (fromIndex === -1 || toIndex === -1) return;
+
     const [moved] = arr.splice(fromIndex,1);
     arr.splice(toIndex,0,moved);
     applyOrderNumbers(arr);
     state.items = arr;
     justReordered = true;
-    saveCurrentOrder();
     renderGrid();
   }
 
   function escAttr(s){
     return (s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function renderSkeleton(){
+    const n = 9;
+    $grid.innerHTML = Array.from({length:n}).map(() => '<div class="card skel"></div>').join("");
+  }
+
+  function passPlatform(it){
+    return !state.selectedPlatform || it.platform === state.selectedPlatform;
+  }
+  function passStatus(it){
+    return !state.selectedStatus || it.status === state.selectedStatus;
+  }
+  function isDraft(it){
+    if (!it || !it.status) return false;
+    return it.status === "Draft" || it.status === "Borrador";
+  }
+  function passViewMode(it){
+    if (READONLY && isDraft(it)) return false;
+
+    if (state.viewMode === "reels"){
+      return !!it.isVideo && !isDraft(it);
+    }
+    if (state.viewMode === "drafts"){
+      return isDraft(it);
+    }
+    return !isDraft(it);
+  }
+  function passFilters(it){
+    return passPlatform(it) && passStatus(it) && passViewMode(it);
+  }
+
+  function renderBio(){
+    const b = state.bio;
+    if (!b || !state.showBio){
+      $bio.classList.remove("visible");
+      $bio.setAttribute("aria-hidden","true");
+      return;
+    }
+    $bioUsername.textContent = b.username || "";
+    $bioName.textContent = b.name || "";
+    $bioLines.textContent = (b.textLines || []).join("\n");
+    const cleanUrl = (b.url || "").replace(/^https?:\/\//,"");
+    $bioUrl.textContent = cleanUrl || "";
+    $bioUrl.href = b.url || "#";
+
+    if (b.avatar){
+      $bioAvatar.src = b.avatar;
+      $bioAvatar.style.display = "block";
+    } else {
+      $bioAvatar.style.display = "none";
+    }
+
+    $bio.classList.add("visible");
+    $bio.setAttribute("aria-hidden","false");
+  }
+
+  function toggleBio(){
+    state.showBio = !state.showBio;
+    try{ localStorage.setItem("showBio", String(state.showBio)); }catch(e){}
+    setSwitch($switchBio, state.showBio);
+    renderBio();
+  }
+
+  function renderMenus(){
+    const items = state.items || [];
+    const platCounts = {};
+    const statusCounts = {};
+
+    items.forEach(it => {
+      if (it.platform) platCounts[it.platform] = (platCounts[it.platform] || 0) + 1;
+      if (it.status) statusCounts[it.status] = (statusCounts[it.status] || 0) + 1;
+    });
+
+    const platforms = Object.keys(platCounts).sort((a,b) => platCounts[b]-platCounts[a]);
+    const statuses  = Object.keys(statusCounts).sort((a,b) => statusCounts[b]-statusCounts[a]);
+
+    const platMenuItems = ["All Platforms", ...platforms];
+    $menuPlatforms.innerHTML = platMenuItems.map(name => {
+      const active = (name === "All Platforms" && !state.selectedPlatform) || state.selectedPlatform === name;
+      const count = name === "All Platforms" ? items.filter(passStatus).length : (platCounts[name] || 0);
+      return `<div class="dd-item ${active?"active":""}" data-v="${name}">
+        <div class="radio"></div>
+        <div class="label">${name}</div>
+        <div class="count">${count}</div>
+      </div>`;
+    }).join("");
+
+    Array.from($menuPlatforms.children).forEach(el => {
+      el.onclick = () => {
+        const val = el.getAttribute("data-v");
+        state.visibleCount = BASE_LIMIT;
+        state.selectedPlatform = (val === "All Platforms") ? null : val;
+        $labelPlatforms.textContent = val;
+        setPillDots();
+        renderGrid();
+        closeDropdowns();
+      };
+    });
+
+    const statusMenuItems = ["All Status", ...statuses];
+    $menuStatus.innerHTML = statusMenuItems.map(name => {
+      const active = (name === "All Status" && !state.selectedStatus) || state.selectedStatus === name;
+      const count = name === "All Status" ? items.filter(passPlatform).length : (statusCounts[name] || 0);
+      return `<div class="dd-item ${active?"active":""}" data-v="${name}">
+        <div class="radio"></div>
+        <div class="label">${name}</div>
+        <div class="count">${count}</div>
+      </div>`;
+    }).join("");
+
+    Array.from($menuStatus.children).forEach(el => {
+      el.onclick = () => {
+        const val = el.getAttribute("data-v");
+        state.visibleCount = BASE_LIMIT;
+        state.selectedStatus = (val === "All Status") ? null : val;
+        $labelStatus.textContent = val;
+        setPillDots();
+        renderGrid();
+        closeDropdowns();
+      };
+    });
+
+    $labelPlatforms.textContent = state.selectedPlatform || "All Platforms";
+    $labelStatus.textContent = state.selectedStatus || "All Status";
+    setPillDots();
   }
 
   function renderGrid(){
@@ -959,23 +959,20 @@
       const badges = [];
       const isCarousel = Array.isArray(it.assets) && it.assets.length > 1;
 
-      // Reels view: ONLY reels icon
       if (state.viewMode === "reels"){
         badges.push(ICONS.reels);
       } else {
-        // Grid/Drafts: Pinned → Reels → Carousel
         if (it.pinned) badges.push(ICONS.pinned);
         if (it.isVideo) badges.push(ICONS.reels);
         if (isCarousel) badges.push(ICONS.carousel);
       }
 
-      const handleHtml = (!READONLY && state.customOrder)
+      const handleHtml = (!READONLY && state.dragMode)
         ? `<div class="drag-handle" title="Reorder" aria-hidden="true">${ICON_SVG_DRAG_HANDLE}</div>`
         : "";
 
       const first = (it.assets && it.assets[0]) || null;
       let media = "";
-
       if (first){
         if (first.type === "video"){
           media = `<video class="card-video" src="${first.url}" muted loop playsinline preload="metadata"></video>`;
@@ -1037,59 +1034,49 @@
       const DRAG_THRESHOLD = 5;
 
       card.addEventListener("pointerdown", (e) => {
-        if (!state.customOrder) return;
         if (READONLY) return;
-        if (e.button !== 0 && e.pointerType === "mouse") return;
 
-        // IMPORTANT: Only start reorder when the handle is pressed
-        const handle = e.target && e.target.closest(".drag-handle");
-        if (!handle) return;
+        // In drag-mode: allow reorder by pointer
+        if (state.dragMode){
+          if (e.button !== 0 && e.pointerType === "mouse") return;
 
-        isPointerDown = true;
-        pointerMoved = false;
-        pointerId = e.pointerId;
-        startX = e.clientX;
-        startY = e.clientY;
-        card.style.setProperty("--dx", "0px");
-        card.style.setProperty("--dy", "0px");
-        card.setPointerCapture(pointerId);
-        card.classList.add("dragging");
+          isPointerDown = true;
+          pointerMoved = false;
+          pointerId = e.pointerId;
+          startX = e.clientX;
+          startY = e.clientY;
+          card.setPointerCapture(pointerId);
+          card.classList.add("dragging");
+          return;
+        }
       });
 
       card.addEventListener("pointermove", (e) => {
         if (!isPointerDown) return;
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-
-        // move the card visually with pointer
-        card.style.setProperty("--dx", dx + "px");
-        card.style.setProperty("--dy", dy + "px");
-
         if (!pointerMoved && Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD){
           pointerMoved = true;
         }
+
+        // highlight current hover target
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const target = el && el.closest('.card[data-type="real"]');
+        cards.forEach(c => c.classList.remove("drag-over"));
+        if (target && target !== card) target.classList.add("drag-over");
       });
 
       function endPointer(e){
         if (!isPointerDown) return;
         isPointerDown = false;
 
+        cards.forEach(c => c.classList.remove("drag-over"));
         card.classList.remove("dragging");
-        card.style.setProperty("--dx", "0px");
-        card.style.setProperty("--dy", "0px");
-
         try{ if (pointerId != null) card.releasePointerCapture(pointerId); }catch(_){}
         pointerId = null;
 
-        // if user just clicked the handle without moving: open modal
-        if (!pointerMoved){
-          if (!justReordered){
-            openModal(item);
-          } else {
-            justReordered = false;
-          }
-          return;
-        }
+        // If you didn’t move: do nothing (avoid accidental reorder)
+        if (!pointerMoved) return;
 
         const clientX = e.clientX;
         const clientY = e.clientY;
@@ -1104,15 +1091,11 @@
       card.addEventListener("pointerup", endPointer);
       card.addEventListener("pointercancel", endPointer);
 
-      // When custom order is OFF: click normal opens modal
-      if (!state.customOrder){
+      // normal click opens modal ONLY if not in drag-mode
+      if (!state.dragMode){
         card.onclick = () => openModal(item);
       } else {
-        // In custom order: clicking the card (not handle) still opens modal
-        card.onclick = (e) => {
-          const handle = e.target && e.target.closest(".drag-handle");
-          if (!handle) openModal(item);
-        };
+        card.onclick = null;
       }
     });
   }
@@ -1265,14 +1248,12 @@
     state.visibleCount = BASE_LIMIT;
     updateViewButtons();
     renderGrid();
-    updateCounts();
   };
   $btnViewReels.onclick = () => {
     state.viewMode = "reels";
     state.visibleCount = BASE_LIMIT;
     updateViewButtons();
     renderGrid();
-    updateCounts();
   };
   if ($btnViewDrafts){
     $btnViewDrafts.onclick = () => {
@@ -1281,7 +1262,6 @@
       state.visibleCount = BASE_LIMIT;
       updateViewButtons();
       renderGrid();
-      updateCounts();
     };
   }
 
@@ -1297,9 +1277,11 @@
     state.selectedStatus = null;
     state.visibleCount = BASE_LIMIT;
     state.viewMode = "grid";
-    document.getElementById("labelPlatforms").textContent = "All Platforms";
-    document.getElementById("labelStatus").textContent = "All Status";
-    closeDD();
+    $labelPlatforms.textContent = "All Platforms";
+    $labelStatus.textContent = "All Status";
+    setPillDots();
+    closeDropdowns();
+    closeMenu();
     load();
   }
 
@@ -1311,59 +1293,117 @@
     });
   }
 
-  $btnFilter.onclick = () => {
-    const isOpen = $filtersRow.classList.contains("open");
-    if (isOpen) $filtersRow.classList.remove("open");
-    else $filtersRow.classList.add("open");
-    updateToolbarDots();
+  // ===== Exclusividad de paneles: Filter vs Menu vs dropdowns =====
+  $btnFilter.onclick = (e) => {
+    e.stopPropagation();
+    // Filter button opens dropdown area intention; but pills always visible.
+    // Here we just close menu (coherent behavior).
+    closeMenu();
+    closeDropdowns();
   };
 
   $togglePlatforms.onclick = e => {
     e.stopPropagation();
-    $filtersRow.classList.add("open");
+    closeMenu(); // close (...) if opening dropdown
     const isOpen = $ddPlatforms.classList.contains("open");
-    closeDD();
+    closeDropdowns();
     if (!isOpen) $ddPlatforms.classList.add("open");
-    updateToolbarDots();
   };
 
   $toggleStatus.onclick = e => {
     e.stopPropagation();
-    $filtersRow.classList.add("open");
+    closeMenu();
     const isOpen = $ddStatus.classList.contains("open");
-    closeDD();
+    closeDropdowns();
     if (!isOpen) $ddStatus.classList.add("open");
-    updateToolbarDots();
   };
 
   $btnMenu.onclick = e => {
     e.stopPropagation();
-    closeDD();
+    closeDropdowns(); // close pills dropdowns
+    // also exit any “filter interaction” feel
     $menu.classList.toggle("open");
-    updateToolbarDots();
   };
 
   document.addEventListener("click", e => {
-    if (!$menu.contains(e.target)) $menu.classList.remove("open");
+    if (!$menu.contains(e.target)) closeMenu();
     if (!$ddPlatforms.contains(e.target)) $ddPlatforms.classList.remove("open");
     if (!$ddStatus.contains(e.target)) $ddStatus.classList.remove("open");
-    updateToolbarDots();
   });
 
   $rowBio.onclick = toggleBio;
   $switchBio.onclick = e => { e.stopPropagation(); toggleBio(); };
 
-  if ($rowCustomOrder){
-    $rowCustomOrder.onclick = toggleCustomOrder;
-  }
-  if ($switchCustomOrder){
-    $switchCustomOrder.onclick = e => { e.stopPropagation(); toggleCustomOrder(); };
+  // ===== Order mode logic =====
+  function setOrderMode(mode){
+    if (READONLY) return;
+    if (mode !== "date" && mode !== "custom") return;
+
+    state.orderMode = mode;
+    try{ localStorage.setItem("orderMode", mode); }catch(e){}
+
+    // If you switch to date: exit drag-mode
+    if (mode === "date"){
+      state.dragMode = false;
+      applyDragModeUI();
+    }
+
+    // If you switch to custom: enter drag-mode immediately (per your screenshot)
+    if (mode === "custom"){
+      startDragMode();
+    }
+
+    updateOrderMenuUI();
+    renderGrid();
   }
 
-  // Toolbar drag icon toggles custom order too (nice UX)
-  if ($btnDragMode){
-    $btnDragMode.onclick = () => toggleCustomOrder();
+  function startDragMode(){
+    if (READONLY) return;
+    if (state.orderMode !== "custom") state.orderMode = "custom";
+    if (!state.dragMode){
+      takeSnapshot();
+      state.dragMode = true;
+      applyDragModeUI();
+      updateOrderMenuUI();
+    }
   }
+
+  function cancelDragMode(){
+    if (READONLY) return;
+    // restore snapshot and exit drag mode (keep orderMode = custom)
+    restoreSnapshot();
+    state.dragMode = false;
+    applyDragModeUI();
+    renderGrid();
+  }
+
+  function saveDragMode(){
+    if (READONLY) return;
+    // persist current order and exit drag mode (keep orderMode = custom)
+    saveCurrentOrder();
+    state.dragMode = false;
+    snapshotBeforeDrag = null;
+    applyDragModeUI();
+    renderGrid();
+  }
+
+  $optDate.onclick = () => setOrderMode("date");
+  $optCustom.onclick = () => setOrderMode("custom");
+  $btnCancelOrder.onclick = (e) => { e.stopPropagation(); cancelDragMode(); };
+  $btnSaveOrder.onclick = (e) => { e.stopPropagation(); saveDragMode(); };
+
+  // Drag-mode toolbar icon: when you already are in custom mode but not dragging, this re-enters drag mode
+  $btnDragMode.onclick = (e) => {
+    e.stopPropagation();
+    if (READONLY) return;
+    if (state.dragMode){
+      // If you click the icon again, just close menu and keep dragging (no toggle off)
+      closeMenu();
+      return;
+    }
+    startDragMode();
+    closeMenu();
+  };
 
   async function load(){
     renderSkeleton();
@@ -1387,24 +1427,31 @@
         _id: it._id || it.id || it.pageId || it.notionId || `local-${idx}`
       }));
 
-      loadSavedOrder();
-
-      state.bio = data.bio || null;
-
+      // Restore showBio
       try{
         state.showBio = (localStorage.getItem("showBio") || "true") === "true";
       }catch(e){
         state.showBio = true;
       }
-
-      try{
-        state.customOrder = (localStorage.getItem("customOrder") || "false") === "true";
-      }catch(e){
-        state.customOrder = false;
-      }
-
       setSwitch($switchBio, state.showBio);
-      applyCustomOrderUI();
+
+      // Restore orderMode
+      try{
+        state.orderMode = localStorage.getItem("orderMode") || "date";
+      }catch(e){
+        state.orderMode = "date";
+      }
+      if (state.orderMode !== "date" && state.orderMode !== "custom") state.orderMode = "date";
+
+      // Load saved custom order if exists
+      loadSavedOrder();
+
+      // drag mode should start false on load
+      state.dragMode = false;
+      applyDragModeUI();
+      updateOrderMenuUI();
+
+      state.bio = data.bio || null;
 
       renderBio();
       renderMenus();
@@ -1413,8 +1460,6 @@
       applyReadonlyRules();
       updateViewButtons();
       renderGrid();
-      updateCounts();
-      updateToolbarDots();
       $modalPager.style.display = "none";
     }catch(e){
       console.error("Load error:", e);
