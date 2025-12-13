@@ -161,10 +161,19 @@
   .badge{
     position:absolute;top:6px;right:6px;z-index:2;display:flex;gap:6px;align-items:center;
   }
-  .badge i{
-    font-size:13px;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
+
+  /* Badges SVG (white, consistent) */
+  .badge-icon{
+    width:16px;
+    height:16px;
+    display:block;
+    color:#fff; /* all white */
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
   }
-  .badge .fa-play{font-size:12px;opacity:.95}
+  .badge-icon *{
+    fill: currentColor;
+    stroke: currentColor;
+  }
 
   .card-overlay{
     position:absolute;bottom:0;left:0;right:0;
@@ -304,7 +313,7 @@
         Refresh
       </button>
 
-      <!-- Filter icon (normalized via CSS + currentColor) -->
+      <!-- Filter icon -->
       <button id="btnFilter" class="btn-icon" data-tip="Filter" data-sub="Platforms & status" aria-label="Filter">
         <svg class="icon" viewBox="0 0 214 325" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M52.2841 61.6897H161.716C168.434 61.6897 173.875 70.0027 173.875 76.736C173.875 85.049 168.434 91.7823 161.716 91.7823H52.2841C45.5662 91.7823 40.125 83.4693 40.125 76.736C40.125 68.423 45.5662 61.6897 52.2841 61.6897Z"/>
@@ -445,6 +454,26 @@
     visibleCount: BASE_LIMIT
   };
 
+  // BADGE ICONS (white)
+  const ICONS = {
+    reels: `
+      <svg class="badge-icon" viewBox="0 0 512 512" aria-hidden="true">
+        <path d="M502.08 127.37C492 70.4601 441.54 20.0001 384.63 9.92006H384.44C344.75 3.28007 302.74 0.0500649 256 6.48682e-05C209.26 -0.0499351 167.24 3.29007 127.56 9.89007H127.37C70.47 20.0001 20 70.4701 9.93 127.37C9.92431 127.433 9.92431 127.497 9.93 127.56C3.3 167.24 0.0599961 209.24 -3.85515e-06 256C-0.0600039 302.76 3.3 344.79 9.89 384.45C9.88533 384.51 9.88533 384.57 9.89 384.63C20 441.53 70.47 492 127.37 502.08H127.56C167.26 508.68 209.27 511.92 256.03 511.97C302.79 512.02 344.75 508.68 384.45 502.08H384.64C441.54 492 492 441.53 502.08 384.63V384.44C508.71 344.77 512 302.76 512 256C512 209.24 508.71 167.26 502.11 127.58L502.08 127.37ZM464.64 378.11C457.32 419.33 419.34 457.31 378.12 464.64C340.52 470.89 300.57 474 256 474C211.43 474 171.47 470.89 133.87 464.64C92.65 457.31 54.67 419.33 47.34 378.1C41.12 340.55 38.06 300.6 38 256C37.8795 222.467 39.9237 188.96 44.12 155.69C136.6 146.24 193.37 143.66 255.64 143.6C332.53 143.67 402.12 147.6 467.87 155.75C472.07 189 474.118 222.486 474 256C474 300.58 470.89 340.53 464.64 378.11Z"></path>
+        <path d="M342.41 285.08C328.41 276.69 314.15 267.33 300.33 258.28C294.83 254.69 289.38 251.11 283.98 247.63C267.79 237.15 246.66 223.9 226.69 214.24C216.57 209.3 204.4 209.91 193.29 215.92C178.99 223.65 168.52 238.59 166.62 253.99V254.31C165.09 268.73 164.04 283.21 163.51 297.31C163.51 298.04 163.24 309.21 163.24 319.57C163.24 329.93 163.5 341.11 163.51 341.57C164.04 355.94 165.09 370.42 166.62 384.83V385.15C168.52 400.55 178.99 415.49 193.29 423.22C199.056 426.429 205.532 428.147 212.13 428.22C217.165 428.269 222.145 427.168 226.69 425C246.69 415.34 267.8 402.09 283.97 391.63C289.377 388.13 294.83 384.573 300.33 380.96C314.15 371.91 328.45 362.56 342.41 354.16C355.21 346.44 362.81 333.55 362.81 319.67C362.81 305.79 355.21 292.83 342.41 285.08ZM322.81 321.58C308.23 330.35 293.63 339.9 279.52 349.14C274.093 352.693 268.697 356.21 263.33 359.69C248.49 369.29 229.33 381.34 211.61 390.04C208.96 388.82 204.88 384.39 204.35 380.69C202.93 367.22 201.96 353.69 201.46 340.58C201.2 328.93 201.2 319.58 201.2 319.58C201.2 310.23 201.43 299.87 201.46 298.58C201.96 285.43 202.93 271.94 204.35 258.48C204.88 254.78 208.96 250.34 211.61 249.12C229.3 257.81 248.48 269.87 263.34 279.49C268.69 282.94 274.09 286.49 279.52 290.03C293.64 299.27 308.25 308.83 322.78 317.57C324.39 318.57 324.78 319.4 324.78 319.57C324.78 319.74 324.39 320.62 322.81 321.58Z"></path>
+      </svg>
+    `,
+    carousel: `
+      <svg class="badge-icon" viewBox="0 0 560 560" aria-hidden="true">
+        <path fill="none" fill-rule="evenodd" clip-rule="evenodd"
+          d="M445.632 351.936C445.632 403.683 403.683 445.632 351.936 445.632H117.696C65.9491 445.632 24 403.683 24 351.936V117.696C24 65.9491 65.9491 24 117.696 24H351.936C403.683 24 445.632 65.9491 445.632 117.696V351.936Z"
+          stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+        <path fill="none"
+          d="M208.064 536H442.304C494.051 536 536 494.048 536 442.304V208.062"
+          stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `
+  };
+
   // DOM refs
   const $grid = document.getElementById("grid");
   const $btnRefresh = document.getElementById("btnRefresh");
@@ -527,7 +556,6 @@
     el.addEventListener("mousemove", moveTip);
     el.addEventListener("mouseleave", hideTip);
   }
-  // bind tooltips to key controls
   [$btnRefresh,$btnFilter,$btnMenu,$btnViewGrid,$btnViewReels,$btnViewDrafts].forEach(b => b && bindTip(b));
 
   function formatDate(dateStr){
@@ -708,7 +736,7 @@
     const key = getOrderKey();
     if (!key) return;
     let raw;
-        try{ raw = localStorage.getItem(key); }catch(e){ return; }
+    try{ raw = localStorage.getItem(key); }catch(e){ return; }
     if (!raw) return;
 
     let ids;
@@ -763,6 +791,10 @@
     renderGrid();
   }
 
+  function escAttr(s){
+    return (s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
   function renderGrid(){
     resortItems();
 
@@ -788,8 +820,19 @@
 
     const realCardsHtml = items.map((it, idx) => {
       const badges = [];
-      if (it.isVideo) badges.push('<i class="fa-solid fa-play" aria-hidden="true" title="Video"></i>');
-      if (it.pinned)  badges.push('<i class="fa-solid fa-thumbtack" aria-hidden="true" title="Pinned"></i>');
+
+      // 1) En vista Reels: TODAS las cards llevan el icono reels
+      if (state.viewMode === "reels") {
+        badges.push(ICONS.reels);
+      } else {
+        // 2) En otras vistas: si es video, lleva icono reels (reemplaza al play)
+        if (it.isVideo) badges.push(ICONS.reels);
+      }
+
+      // 3) Si es carrusel (más de 1 asset), muestra carrusel
+      if (Array.isArray(it.assets) && it.assets.length > 1) {
+        badges.push(ICONS.carousel);
+      }
 
       const first = (it.assets && it.assets[0]) || null;
       let media = "";
@@ -798,7 +841,7 @@
         if (first.type === "video"){
           media = `<video class="card-video" src="${first.url}" muted loop playsinline preload="metadata"></video>`;
         } else {
-          media = `<img class="card-img" src="${first.url}" alt="${(it.title || "").replace(/"/g,"&quot;")}" loading="lazy" decoding="async" />`;
+          media = `<img class="card-img" src="${first.url}" alt="${escAttr(it.title || "")}" loading="lazy" decoding="async" />`;
         }
       } else {
         media = '<div class="card-placeholder">No Content</div>';
