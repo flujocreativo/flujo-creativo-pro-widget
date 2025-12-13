@@ -123,7 +123,8 @@ function normalizePost(page) {
     caption: readRichText(props.Caption),
 
     platform: readSelect(props.Platform),
-    status: readSelect(props.Status) || "Draft",
+    // IMPORTANT: NO default "Draft" here (prevents contaminating items)
+    status: readSelect(props.Status) || null,
 
     pinned: readCheckbox(props.Pinned),
 
@@ -167,7 +168,7 @@ export default async function handler(req, res) {
     const resp = await notion.databases.query({
       database_id: NOTION_DB_ID,
       page_size: 100,
-      filter: {
+      // IMPORTANT: no filter here (you removed Hide)
       sorts: [
         { property: "Pinned", direction: "descending" },
         { property: "Publish Date", direction: "descending" },
