@@ -126,7 +126,6 @@ function normalizePost(page) {
     status: readSelect(props.Status) || "Draft",
 
     pinned: readCheckbox(props.Pinned),
-    hide: readCheckbox(props.Hide),
 
     assets,
     isVideo,
@@ -169,9 +168,6 @@ export default async function handler(req, res) {
       database_id: NOTION_DB_ID,
       page_size: 100,
       filter: {
-        property: "Hide",
-        checkbox: { equals: false },
-      },
       sorts: [
         { property: "Pinned", direction: "descending" },
         { property: "Publish Date", direction: "descending" },
