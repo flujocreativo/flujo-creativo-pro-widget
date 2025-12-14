@@ -25,10 +25,10 @@ function error(res, msg, status = 500) {
 function readTitle(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.title)) {
-    return prop.title.map((t) => t.plain_text).join("");
+    return prop.title.map(t => t.plain_text).join("");
   }
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t) => t.plain_text).join("");
+    return prop.rich_text.map(t => t.plain_text).join("");
   }
   return "";
 }
@@ -41,10 +41,28 @@ function readCheckbox(prop) {
   return !!prop?.checkbox;
 }
 
+// 🔧 SAFE: select OR status
+function readStatus(prop) {
+  if (!prop) return null;
+  if (prop.status?.name) return prop.status.name;
+  if (prop.select?.name) return prop.select.name;
+  return null;
+}
+
+// 🔧 SAFE: select OR multi_select
+function readPlatform(prop) {
+  if (!prop) return null;
+  if (prop.select?.name) return prop.select.name;
+  if (Array.isArray(prop.multi_select) && prop.multi_select.length) {
+    return prop.multi_select[0].name;
+  }
+  return null;
+}
+
 function readRichText(prop) {
   if (!prop) return "";
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t) => t.plain_text).join("").trim();
+    return prop.rich_text.map(t => t.plain_text).join("").trim();
   }
   return "";
 }
@@ -62,11 +80,11 @@ function readTextUrl(prop) {
   if (prop.url) return prop.url.trim();
 
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t) => t.plain_text).join("").trim() || null;
+    return prop.rich_text.map(t => t.plain_text).join("").trim() || null;
   }
 
   if (Array.isArray(prop.title)) {
-    return prop.title.map((t) => t.plain_text).join("").trim() || null;
+    return prop.title.map(t => t.plain_text).join("").trim() || null;
   }
 
   if (typeof prop === "string") return prop.trim();
@@ -74,58 +92,28 @@ function readTextUrl(prop) {
   return null;
 }
 
-/**
- * Notion "Status" property can surface as:
- * - prop.status.name  (Status type)
- * - prop.select.name  (in some schemas / older conversions)
- */
-function readStatus(prop) {
-  if (!prop) return null;
-  if (prop.status?.name) return prop.status.name;
-  if (prop.select?.name) return prop.select.name;
-  return null;
-}
-
-/**
- * Platform might be either:
- * - select.name
- * - multi_select[0].name (take first for simple UX)
- */
-function readPlatform(prop) {
-  if (!prop) return null;
-  if (prop.select?.name) return prop.select.name;
-  if (Array.isArray(prop.multi_select) && prop.multi_select.length) {
-    return prop.multi_select[0]?.name || null;
-  }
-  return null;
-}
-
 // -------------------------------
-//  ASSETS
+//  ASSETS (NO TOCAR)
 // -------------------------------
 function extractAssets(props) {
-  // 1. Attachment (files)
   if (props.Attachment?.files?.length) {
-    return props.Attachment.files.map((f) => ({
+    return props.Attachment.files.map(f => ({
       url: f.file?.url || f.external?.url,
       type: guessAssetType(f.file?.url || f.external?.url),
       source: "attachment",
     }));
   }
 
-  // 2. Link
   const link = readTextUrl(props.Link);
   if (link) {
     return [{ url: link, type: guessAssetType(link), source: "link" }];
   }
 
-  // 3. Canva
   const canva = readTextUrl(props.Canva);
   if (canva) {
     return [{ url: canva, type: guessAssetType(canva), source: "canva" }];
   }
 
-  // No assets
   return [];
 }
 
@@ -135,7 +123,7 @@ function extractAssets(props) {
 function normalizePost(page) {
   const props = page.properties || {};
   const assets = extractAssets(props);
-  const isVideo = assets.some((a) => a.type === "video");
+  const isVideo = assets.some(a => a.type === "video");
 
   return {
     id: page.id,
@@ -145,8 +133,6 @@ function normalizePost(page) {
     caption: readRichText(props.Caption),
 
     platform: readPlatform(props.Platform),
-
-    // IMPORTANT: no default "Draft" here (prevents contaminating items)
     status: readStatus(props.Status),
 
     pinned: readCheckbox(props.Pinned),
@@ -166,7 +152,7 @@ function buildFilters(posts) {
   const platforms = new Set();
   const statuses = new Set();
 
-  posts.forEach((p) => {
+  posts.forEach(p => {
     if (p.platform) platforms.add(p.platform);
     if (p.status) statuses.add(p.status);
   });
@@ -191,7 +177,6 @@ export default async function handler(req, res) {
     const resp = await notion.databases.query({
       database_id: NOTION_DB_ID,
       page_size: 100,
-      // IMPORTANT: no filter here (you removed Hide)
       sorts: [
         { property: "Pinned", direction: "descending" },
         { property: "Publish Date", direction: "descending" },
